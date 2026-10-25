@@ -2246,8 +2246,10 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
             mOpeningWindowState.end();
 
             result.beginReplace();
-            applyClosingStartState(appTargets, startRect, startCornerRadius);
             onAccepted.run();
+            // After the merge transaction, which resets the position of the wrapped leashes. Put
+            // before it, the window showed up scaled but at the top left corner for a frame.
+            applyClosingStartState(appTargets, startRect, startCornerRadius);
             try {
                 startWallpaperOpenAnimation(appTargets, wallpaperTargets, nonAppTargets, result,
                         startRect, startCornerRadius, startVelocity);
