@@ -30,6 +30,8 @@ The details are in [`lawnchoir/docs/GUIDA-MODULO-LAWNCHAIR.md`](lawnchoir/docs/G
 
 ## Building and installing
 
+A ready-made module zip is attached to each [release](https://github.com/Helemen7/LawnChoir/releases); you only need to build from source if you want to change the code.
+
 1. Build the APK: `./gradlew assembleLawnWithQuickstepNightlyDebug` (JDK 21, Android SDK with platform 37 and build-tools 37.0.0).
 2. Build the Magisk module with the scripts in [`lawnchoir/module/`](lawnchoir/module). The module contains the APK as a privileged system app, the privileged permission list, a recents overlay and a boot-loop guard that disables the module after three failed boots.
 3. Install the module from Magisk, reboot, and pick the launcher as the default Home app.

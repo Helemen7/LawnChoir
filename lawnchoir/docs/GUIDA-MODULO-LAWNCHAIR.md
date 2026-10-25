@@ -55,7 +55,7 @@ Altre due vie, più comode ma non le ho verificate su questo telefono: avviare i
 
 ## Stato attuale sul telefono (25 ottobre 2026)
 
-Il modulo installato è quello dentro `lawnchair_quickstep_magisk.zip` (hash `e92ade50…c1a5`). Dopo un riavvio completo il telefono parte da solo su Lawnchair, la navigazione a gesti è attiva e SystemUI è collegato al servizio dei gesti di Lawnchair.
+Il modulo installato è quello dentro `lawnchair_quickstep_magisk.zip` (hash `ae7ccaf7…2455`). Dopo un riavvio completo il telefono parte da solo su Lawnchair, la navigazione a gesti è attiva e SystemUI è collegato al servizio dei gesti di Lawnchair.
 
 Per arrivare qui ho dovuto cambiare Lawnchair, perché il ramo `16-dev` è compilato contro le API interne di Android 16 e il tuo PixelOS è Android 17. Le correzioni sono nel codice in WSL (`/home/aosp/lawnchair`):
 
@@ -85,6 +85,8 @@ Interruzione fin dal primo frame: l'apertura da icona è interrompibile dal prim
 Screenshot e Lens con il gesto "scorri e tieni": `RecentsViewModelHelper.switchToScreenshot` aspettava che il repository delle miniature ricevesse lo snapshot appena scattato, cosa che su Android 17 non succede, e la callback non partiva mai. Ora l'attesa ha un limite di 400 ms. Provato con quattro gesti di fila: Screenshot salva il file in `Pictures/Screenshots` e Lens si apre.
 
 Catena apri, chiudi, riapri senza schermo nero: quando una chiusura prende il posto di un'apertura in corso (merge), il sistema tiene attiva la transizione di Home finché dura l'animazione di chiusura. Se in quel momento tocchi un'icona, la nuova apertura veniva raccolta mentre la vecchia non era ancora conclusa, e Launcher e wallpaper restavano nascosti per tutta l'animazione (schermo nero). Ora al tocco su un'icona l'animazione in corso viene portata subito al suo stato finale e la sua transizione si conclude (`LauncherAnimationRunner.endPlayingAnimation`, chiamata da `getActivityLaunchOptions`). Inoltre, quando il sistema annulla un'animazione, questa salta prima al suo stato finale e solo dopo la transizione viene conclusa (`cancelThenRun`), e il merge mostra esplicitamente le radici e i leash delle finestre che si aprono. Chiusure (Home, Back, swipe) arrivate prima che l'animazione di apertura sia partita restano in coda e partono appena inizia (`closeLaunchingApp`). Provato con apri, chiudi dopo 150 ms e riapri dopo 120 ms fino a 800 ms, con Home, swipe e Back, sulla stessa icona e su un'altra: nessun nero.
+
+Chiusura che parte da dove l'apertura è stata interrotta, senza lampi: quando una chiusura prende il posto di un'apertura, la finestra dell'app viene messa subito nel rettangolo in cui l'animazione l'aveva lasciata (`QuickstepTransitionManager.applyClosingStartState`), invece di restare per un frame a tutto schermo o nascosta. Prima il merge nascondeva le finestre in chiusura (alpha 0) e per un frame si vedeva l'intera schermata Home; ora non lo fa più. Il posizionamento va applicato dopo la transazione del merge (`onAccepted.run()` prima, poi `applyClosingStartState`), perché quella transazione rimette la posizione a (0,0): nell'ordine inverso restava per un frame un clone della finestra, della dimensione corrente, ancorato in alto a sinistra. Verificato con le animazioni rallentate a 8x (`animator_duration_scale`, `transition_animation_scale`, `window_animation_scale` a 8, poi di nuovo a 1) e screenshot in sequenza, con interruzioni da Home, Back e swipe a diversi punti dell'apertura. A velocità normale un singolo frame non si può dimostrare con `screencap`.
 
 ## Cose da sapere
 
