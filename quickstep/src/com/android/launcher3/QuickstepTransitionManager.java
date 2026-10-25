@@ -92,6 +92,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.IRemoteCallback;
 import android.os.Looper;
+import android.content.Intent;
+import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.provider.Settings;
@@ -110,7 +112,7 @@ import android.view.WindowManager;
 import android.view.animation.AnimationUtils;
 import android.view.animation.Interpolator;
 import android.view.animation.PathInterpolator;
-import android.window.DesktopModeFlags;
+import com.android.wm.shell.shared.compat.DesktopModeFlags;
 import android.window.RemoteTransition;
 import android.window.TransitionFilter;
 import android.window.WindowAnimationState;
@@ -262,6 +264,23 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
     private RemoteAnimationFactory mWallpaperOpenRunner;
     private RemoteAnimationFactory mAppLaunchRunner;
 
+    /** Where the window of the icon to app animation is, so that a close can pick up from there. */
+    private final OpeningWindowState mOpeningWindowState = new OpeningWindowState();
+
+    /** How long after a tap on an icon a launch is considered to be about to start. */
+    private static final long LAUNCH_PENDING_TIMEOUT_MS = 700;
+    /** Uptime until which an icon launch has been requested but its animation hasn't begun. */
+    private volatile long mLaunchPendingUntilMs;
+    /** A close (Home, Back, swipe up) that arrived before the launch animation began. */
+    private volatile boolean mCloseQueued;
+    private final Runnable mQueuedCloseFallback = () -> {
+        if (mCloseQueued) {
+            mCloseQueued = false;
+            mLaunchPendingUntilMs = 0;
+            goHomeDuringLaunch();
+        }
+    };
+
     private RemoteAnimationFactory mWallpaperOpenTransitionRunner;
     private RemoteTransition mLauncherOpenTransition;
 
@@ -336,6 +355,8 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
      * targets are displayed.
      */
     public ActivityOptionsWrapper getActivityLaunchOptions(View v, ItemInfo itemInfo) {
+        mLaunchPendingUntilMs = SystemClock.uptimeMillis() + LAUNCH_PENDING_TIMEOUT_MS;
+        LauncherAnimationRunner.endPlayingAnimation();
         boolean fromRecents = isLaunchingFromRecents(v, null /* targets */);
         RunnableList onEndCallback = new RunnableList();
 
@@ -753,6 +774,16 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
             hasSplashScreen = false;
         }
 
+        mOpeningWindowState.begin(openingTargets.getFirstAppTargetTaskId(),
+                getTargetPackage(openingTargets.getFirstAppTarget()));
+        mLaunchPendingUntilMs = 0;
+        if (mCloseQueued) {
+            // The close came before the launch began, so it could not interrupt anything. Do it
+            // now that the launch is running and can be merged with.
+            mCloseQueued = false;
+            mHandler.removeCallbacks(mQueuedCloseFallback);
+            mHandler.postDelayed(this::goHomeDuringLaunch, 60);
+        }
         AnimOpenProperties prop = new AnimOpenProperties(mLauncher.getResources(), mDeviceProfile,
                 windowTargetBounds, launcherIconBounds, v, dragLayerBounds[0], dragLayerBounds[1],
                 hasSplashScreen, floatingView.isDifferentFromAppIcon());
@@ -787,6 +818,7 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
             @Override
             public void onAnimationEnd(Animator animation) {
+                mOpeningWindowState.end();
                 if (v instanceof BubbleTextView) {
                     ((BubbleTextView) v).setStayPressed(false);
                 }
@@ -916,6 +948,9 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                 floatingIconBounds.bottom += offsetY;
 
                 if (initOnly) {
+                    // The launch can be interrupted from its first frame, from the icon.
+                    mOpeningWindowState.update(floatingIconBounds,
+                            mWindowRadius.value * scale, SystemClock.uptimeMillis());
                     // For the init pass, we want full alpha since the window is not yet ready.
                     floatingView.update(1f, floatingIconBounds, percent, 0f,
                             mWindowRadius.value * scale, true /* isOpening */);
@@ -945,6 +980,8 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                             matrix.postTranslate(windowTransX0, windowTransY0);
                         }
 
+                        mOpeningWindowState.update(floatingIconBounds,
+                                mWindowRadius.value * scale, SystemClock.uptimeMillis());
                         floatingView.update(mIconAlpha.value, floatingIconBounds, percent, 0f,
                                 mWindowRadius.value * scale, true /* isOpening */);
                         builder.setMatrix(matrix)
@@ -1246,7 +1283,6 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
         homeCheck.mRequirements =
                 new TransitionFilter.Requirement[]{new TransitionFilter.Requirement(),
-                        new TransitionFilter.Requirement(),
                         new TransitionFilter.Requirement()};
 
         homeCheck.mRequirements[0].mActivityType = ACTIVITY_TYPE_HOME;
@@ -1257,12 +1293,8 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
         homeCheck.mRequirements[1].mActivityType = ACTIVITY_TYPE_STANDARD;
         homeCheck.mRequirements[1].mModes = new int[]{TRANSIT_CLOSE, TRANSIT_TO_BACK};
 
-        homeCheck.mRequirements[2].mNot = true;
-        if (Utilities.ATLEAST_BAKLAVA) { // LC-Note: QuickSwitch compatibility!
-            homeCheck.mRequirements[2].mCustomAnimation = true;
-        }
-        homeCheck.mRequirements[2].mMustBeTask = true;
-        homeCheck.mRequirements[2].mMustBeIndependent = true;
+        // The upstream filter also has a third requirement that excludes a task with a custom
+        // animation. It is left out so that the app closes into its icon even then.
 
         SystemUiProxy.INSTANCE.get(mLauncher)
                 .registerRemoteTransition(mLauncherOpenTransition, homeCheck);
@@ -1713,6 +1745,23 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
             RectF startRect,
             float startWindowCornerRadius,
             boolean fromPredictiveBack) {
+        return createWallpaperOpenAnimations(appTargets, wallpapers, nonAppTargets, startRect,
+                startWindowCornerRadius, fromPredictiveBack, null /* startVelocityPxPerMs */);
+    }
+
+    /**
+     * Same as above, but the closing window starts with {@code startVelocityPxPerMs} when it is
+     * not null, e.g. to pick up from an opening window that this close interrupts.
+     */
+    @NonNull
+    public BackAnimState createWallpaperOpenAnimations(
+            RemoteAnimationTarget[] appTargets,
+            RemoteAnimationTarget[] wallpapers,
+            RemoteAnimationTarget[] nonAppTargets,
+            RectF startRect,
+            float startWindowCornerRadius,
+            boolean fromPredictiveBack,
+            @Nullable PointF startVelocityPxPerMs) {
         View launcherView = findLauncherView(appTargets);
         if (checkReturnAnimationsFlags()
                 && launcherView != null
@@ -1751,6 +1800,12 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                 && launcherIsForceInvisibleOrOpening)
                 || mLauncher.getWorkspace().isOverlayShown()
                 || shouldPlayFallbackClosingAnimation(appTargets);
+        Log.d(TAG, "closing: fallback=" + playFallBackAnimation + " launcherView="
+                + (launcherView != null) + " forceInvisibleOrOpening="
+                + launcherIsForceInvisibleOrOpening + " overlayShown="
+                + mLauncher.getWorkspace().isOverlayShown() + " shouldFallback="
+                + shouldPlayFallbackClosingAnimation(appTargets) + " predictiveBack="
+                + fromPredictiveBack);
 
         boolean playWorkspaceReveal = true;
         if (!Flags.predictiveBackToHomePolish()) {
@@ -1768,7 +1823,8 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                 velocity = new PointF(0, -velocityPxPerS);
             }
             rectFSpringAnim = getClosingWindowAnimators(
-                    anim, appTargets, launcherView, velocity, startRect,
+                    anim, appTargets, launcherView,
+                    startVelocityPxPerMs != null ? startVelocityPxPerMs : velocity, startRect,
                     startWindowCornerRadius);
             if (mLauncher.isInState(LauncherState.ALL_APPS)) {
                 // Skip scaling all apps, otherwise FloatingIconView will get wrong
@@ -1916,38 +1972,201 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                 return;
             }
 
-            if (mLauncher.hasSomeInvisibleFlag(PENDING_INVISIBLE_BY_WALLPAPER_ANIMATION)) {
-                mLauncher.addForceInvisibleFlag(INVISIBLE_BY_PENDING_FLAGS);
-                mLauncher.getStateManager().moveToRestState();
+            startWallpaperOpenAnimation(appTargets, wallpaperTargets, nonAppTargets, result,
+                    null /* startRect */, QuickStepContract.getWindowCornerRadius(mLauncher),
+                    null /* startVelocityPxPerMs */);
+        }
+    }
+
+    /**
+     * Plays the animation from the app to Launcher.
+     *
+     * @param startRect             where the closing window starts, in screen coordinates, or
+     *                              null to start from the full window
+     * @param startVelocityPxPerMs  velocity of the closing window at the start, or null for the
+     *                              default
+     */
+    private void startWallpaperOpenAnimation(
+            RemoteAnimationTarget[] appTargets,
+            RemoteAnimationTarget[] wallpaperTargets,
+            RemoteAnimationTarget[] nonAppTargets,
+            LauncherAnimationRunner.AnimationResult result,
+            @Nullable RectF startRect,
+            float startWindowCornerRadius,
+            @Nullable PointF startVelocityPxPerMs) {
+        if (mLauncher.hasSomeInvisibleFlag(PENDING_INVISIBLE_BY_WALLPAPER_ANIMATION)) {
+            mLauncher.addForceInvisibleFlag(INVISIBLE_BY_PENDING_FLAGS);
+            mLauncher.getStateManager().moveToRestState();
+        }
+
+        RectF windowTargetBounds = startRect != null
+                ? new RectF(startRect)
+                : new RectF(getWindowTargetBounds(appTargets, getRotationChange(appTargets)));
+
+        final RectF resolveRectF = new RectF(windowTargetBounds);
+        for (RemoteAnimationTarget t : appTargets) {
+            if (t.mode == MODE_CLOSING) {
+                transferRectToTargetCoordinate(
+                        t, windowTargetBounds, true, resolveRectF);
+                break;
             }
+        }
 
-            RectF windowTargetBounds =
-                    new RectF(getWindowTargetBounds(appTargets, getRotationChange(appTargets)));
+        BackAnimState bankAnimState = createWallpaperOpenAnimations(
+                appTargets, wallpaperTargets, nonAppTargets, resolveRectF,
+                startWindowCornerRadius, false /* fromPredictiveBack */, startVelocityPxPerMs);
 
-            final RectF resolveRectF = new RectF(windowTargetBounds);
-            for (RemoteAnimationTarget t : appTargets) {
-                if (t.mode == MODE_CLOSING) {
-                    transferRectToTargetCoordinate(
-                            t, windowTargetBounds, true, resolveRectF);
-                    break;
+        TaskViewUtils.createSplitAuxiliarySurfacesAnimator(nonAppTargets, false, null);
+        mLauncher.clearForceInvisibleFlag(INVISIBLE_ALL);
+        bankAnimState.applyToAnimationResult(result, mLauncher);
+    }
+
+    /** Whether an icon to app launch animation is playing and can still be interrupted. */
+    public boolean isAppLaunchInterruptible() {
+        return mOpeningWindowState.isMergeable() || isAppLaunchPending();
+    }
+
+    /** Whether an icon was tapped and its launch animation hasn't begun yet. */
+    private boolean isAppLaunchPending() {
+        return SystemClock.uptimeMillis() < mLaunchPendingUntilMs;
+    }
+
+    /**
+     * Closes the app being launched. If the launch animation hasn't begun, the close is held until
+     * it has, as there is nothing to interrupt yet and the system would otherwise ignore it.
+     */
+    public void closeLaunchingApp() {
+        if (isAppLaunchPending() && !mOpeningWindowState.isMergeable()) {
+            Log.d(TAG, "Close during a pending launch, queued");
+            mCloseQueued = true;
+            mHandler.removeCallbacks(mQueuedCloseFallback);
+            mHandler.postDelayed(mQueuedCloseFallback,
+                    Math.max(0, mLaunchPendingUntilMs - SystemClock.uptimeMillis()) + 50);
+            return;
+        }
+        goHomeDuringLaunch();
+    }
+
+    /**
+     * Back or Home pressed in Launcher while a launch is pending. Returns whether it was queued.
+     */
+    public boolean queueCloseIfLaunchPending() {
+        if (isAppLaunchPending() && !mOpeningWindowState.isMergeable()) {
+            closeLaunchingApp();
+            return true;
+        }
+        return false;
+    }
+
+    private void goHomeDuringLaunch() {
+        Log.d(TAG, "Going home during an app launch");
+        Intent home = new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_HOME)
+                .setPackage(mLauncher.getPackageName())
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        try {
+            mLauncher.startActivity(home);
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Failed to go home", e);
+        }
+    }
+
+    /** The package of the app that the target is a task of, if known. */
+    @Nullable
+    private static String getTargetPackage(@Nullable RemoteAnimationTarget target) {
+        if (target == null || target.taskInfo == null) {
+            return null;
+        }
+        final ComponentName component = target.taskInfo.baseActivity != null
+                ? target.taskInfo.baseActivity : target.taskInfo.topActivity;
+        return component != null ? component.getPackageName() : null;
+    }
+
+    /**
+     * Where the window of an icon to app launch animation currently is. Lets a close that
+     * interrupts the launch pick up from there, instead of the launch jumping to its end.
+     */
+    private static class OpeningWindowState {
+
+        private final RectF mRect = new RectF();
+        private final PointF mVelocityPxPerMs = new PointF();
+        private float mCornerRadius;
+        private long mLastUpdateMs;
+        private int mTaskId;
+        @Nullable private String mPackage;
+        private volatile boolean mMergeable;
+
+        /** Starts tracking a launch of the task. Not mergeable until the first frame is drawn. */
+        void begin(int taskId, @Nullable String packageName) {
+            mTaskId = taskId;
+            mPackage = packageName;
+            mLastUpdateMs = 0;
+            mVelocityPxPerMs.set(0, 0);
+            mMergeable = false;
+        }
+
+        void update(RectF windowRect, float cornerRadius, long nowMs) {
+            if (mLastUpdateMs != 0) {
+                long dtMs = nowMs - mLastUpdateMs;
+                if (dtMs <= 0) {
+                    // Same frame, keep the velocity from the previous one.
+                    mRect.set(windowRect);
+                    mCornerRadius = cornerRadius;
+                    return;
                 }
+                // Smooth over frames, as single frame deltas are noisy.
+                mVelocityPxPerMs.set(
+                        0.5f * mVelocityPxPerMs.x
+                                + 0.5f * (windowRect.centerX() - mRect.centerX()) / dtMs,
+                        0.5f * mVelocityPxPerMs.y
+                                + 0.5f * (windowRect.centerY() - mRect.centerY()) / dtMs);
             }
+            mRect.set(windowRect);
+            mCornerRadius = cornerRadius;
+            mLastUpdateMs = nowMs;
+            mMergeable = true;
+        }
 
-            BackAnimState bankAnimState = createWallpaperOpenAnimations(
-                    appTargets, wallpaperTargets, nonAppTargets, resolveRectF,
-                    QuickStepContract.getWindowCornerRadius(mLauncher),
-                    false /* fromPredictiveBack */);
+        void end() {
+            if (mMergeable) {
+                Log.d(TAG, "Launch animation ended, no longer mergeable");
+            }
+            mMergeable = false;
+            mLastUpdateMs = 0;
+        }
 
-            TaskViewUtils.createSplitAuxiliarySurfacesAnimator(nonAppTargets, false, null);
-            mLauncher.clearForceInvisibleFlag(INVISIBLE_ALL);
-            bankAnimState.applyToAnimationResult(result, mLauncher);
+        boolean isMergeable() {
+            return mMergeable;
+        }
+
+        int getTaskId() {
+            return mTaskId;
+        }
+
+        @Nullable
+        String getPackage() {
+            return mPackage;
+        }
+
+        RectF getRect() {
+            return new RectF(mRect);
+        }
+
+        PointF getVelocityPxPerMs() {
+            return new PointF(mVelocityPxPerMs.x, mVelocityPxPerMs.y);
+        }
+
+        float getCornerRadius() {
+            return mCornerRadius;
         }
     }
 
     /**
      * Remote animation runner for animation to launch an app.
      */
-    private class AppLaunchAnimationRunner implements RemoteAnimationFactory {
+    private class AppLaunchAnimationRunner implements RemoteAnimationFactory,
+            LauncherAnimationRunner.MergeableFactory {
 
         private final View mV;
         private final RunnableList mOnEndCallback;
@@ -1955,6 +2174,70 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
         AppLaunchAnimationRunner(View v, RunnableList onEndCallback) {
             mV = v;
             mOnEndCallback = onEndCallback;
+        }
+
+        @Override
+        public boolean canMergeClosing() {
+            final boolean mergeable = mOpeningWindowState.isMergeable();
+            if (!mergeable) {
+                Log.d(TAG, "Merge rejected: the launch animation is not running");
+            }
+            return mergeable;
+        }
+
+        /**
+         * Closes the app from where its launch animation is, rather than letting the launch jump
+         * to its end first, when the launch is interrupted by a return to Home.
+         */
+        @Override
+        public boolean onMergeClosing(RemoteAnimationTarget[] appTargets,
+                RemoteAnimationTarget[] wallpaperTargets, RemoteAnimationTarget[] nonAppTargets,
+                LauncherAnimationRunner.AnimationResult result, Runnable onAccepted) {
+            if (mLauncher.isDestroyed() || !mOpeningWindowState.isMergeable()) {
+                Log.d(TAG, "Merge rejected: launcher destroyed or launch no longer running");
+                return false;
+            }
+            // Transitions promote a target to its root task, so its task id may not be the one
+            // of the launch. The package is stable.
+            boolean closesLaunchedApp = false;
+            for (RemoteAnimationTarget target : appTargets) {
+                if (target.mode != MODE_CLOSING) continue;
+                final String closingPackage = getTargetPackage(target);
+                if (target.taskId == mOpeningWindowState.getTaskId()
+                        || (closingPackage != null
+                                && closingPackage.equals(mOpeningWindowState.getPackage()))) {
+                    closesLaunchedApp = true;
+                    break;
+                }
+            }
+            if (!closesLaunchedApp) {
+                Log.d(TAG, "Merge rejected: the closing app is not the one being launched ("
+                        + mOpeningWindowState.getPackage() + ")");
+                return false;
+            }
+            if (!launcherIsATargetWithMode(appTargets, MODE_OPENING)) {
+                Log.d(TAG, "Merge rejected: Launcher is not opening");
+                return false;
+            }
+            Log.d(TAG, "Merge accepted: closing " + mOpeningWindowState.getPackage()
+                    + " from " + mOpeningWindowState.getRect());
+
+            final RectF startRect = mOpeningWindowState.getRect();
+            final float startCornerRadius = mOpeningWindowState.getCornerRadius();
+            final PointF startVelocity = mOpeningWindowState.getVelocityPxPerMs();
+            mOpeningWindowState.end();
+
+            result.beginReplace();
+            onAccepted.run();
+            try {
+                startWallpaperOpenAnimation(appTargets, wallpaperTargets, nonAppTargets, result,
+                        startRect, startCornerRadius, startVelocity);
+            } catch (RuntimeException e) {
+                Log.e(TAG, "Failed to close the app from its launch animation", e);
+                // Without this the transition would never finish.
+                result.setAnimation(null, null);
+            }
+            return true;
         }
 
         @Override

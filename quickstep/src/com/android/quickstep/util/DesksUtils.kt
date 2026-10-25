@@ -19,7 +19,7 @@ package com.android.quickstep.util
 import android.app.TaskInfo
 import android.content.ComponentName
 import android.content.res.Resources
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import com.android.launcher3.Utilities
 import com.android.systemui.shared.recents.model.Task
 

@@ -21,8 +21,8 @@ import android.content.Context
 import android.content.pm.UserInfo
 import android.os.UserManager
 import android.util.SparseArray
-import android.window.DesktopExperienceFlags
-import android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_HSUM
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_HSUM
 import androidx.core.util.forEach
 import com.android.internal.protolog.ProtoLog
 import com.android.wm.shell.desktopmode.persistence.DesktopPersistentRepository

@@ -18,7 +18,7 @@ package com.android.wm.shell.crashhandling
 
 import android.app.WindowConfiguration
 import android.view.Display.DEFAULT_DISPLAY
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import android.window.WindowContainerTransaction
 import com.android.wm.shell.ShellTaskOrganizer
 import com.android.wm.shell.common.HomeIntentProvider

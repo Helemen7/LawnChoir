@@ -19,7 +19,7 @@ package com.android.wm.shell.desktopmode
 import android.os.IBinder
 import android.view.Display.INVALID_DISPLAY
 import android.view.SurfaceControl
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import android.window.TransitionInfo
 import android.window.TransitionRequestInfo
 import android.window.WindowContainerTransaction

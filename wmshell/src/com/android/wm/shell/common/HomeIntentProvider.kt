@@ -24,7 +24,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.UserHandle
 import android.view.Display.DEFAULT_DISPLAY
-import android.window.DesktopExperienceFlags.ENABLE_PER_DISPLAY_DESKTOP_WALLPAPER_ACTIVITY
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags.ENABLE_PER_DISPLAY_DESKTOP_WALLPAPER_ACTIVITY
 import android.window.WindowContainerTransaction
 
 /** Creates home intent **/

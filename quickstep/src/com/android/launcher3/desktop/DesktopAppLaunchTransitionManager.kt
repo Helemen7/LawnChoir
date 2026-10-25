@@ -19,8 +19,8 @@ package com.android.launcher3.desktop
 import android.app.WindowConfiguration.ACTIVITY_TYPE_STANDARD
 import android.app.WindowConfiguration.WINDOWING_MODE_FREEFORM
 import android.content.Context
-import android.window.DesktopExperienceFlags
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import android.window.RemoteTransition
 import android.window.TransitionFilter
 import android.window.TransitionFilter.CONTAINER_ORDER_TOP

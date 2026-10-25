@@ -26,7 +26,7 @@ import android.app.WindowConfiguration.windowingModeToString
 import android.util.SparseArray
 import android.view.SurfaceControl
 import android.view.WindowManager.TRANSIT_TO_FRONT
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import android.window.TaskOrganizer
 import android.window.TransitionInfo
 import android.window.WindowContainerToken

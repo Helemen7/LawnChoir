@@ -39,8 +39,8 @@ import android.graphics.Region;
 import android.util.Pair;
 import android.view.Display;
 import android.view.SurfaceControl;
-import android.window.DesktopExperienceFlags;
-import android.window.DesktopModeFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopModeFlags;
 
 import androidx.annotation.VisibleForTesting;
 

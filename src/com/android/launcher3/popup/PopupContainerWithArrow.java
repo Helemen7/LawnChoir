@@ -16,7 +16,7 @@
 
 package com.android.launcher3.popup;
 
-import static android.multiuser.Flags.enableMovingContentIntoPrivateSpace;
+import static com.android.wm.shell.shared.compat.android.multiuser.Flags.enableMovingContentIntoPrivateSpace;
 
 import static com.android.launcher3.LauncherSettings.Favorites.CONTAINER_SHORTCUTS;
 import static com.android.launcher3.Utilities.ATLEAST_BAKLAVA;

@@ -34,7 +34,7 @@ import android.view.WindowManager
 import android.view.WindowlessWindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import androidx.core.animation.doOnEnd
 import com.android.internal.annotations.VisibleForTesting
 import com.android.wm.shell.R

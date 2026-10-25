@@ -65,16 +65,16 @@ import android.view.WindowManager.TRANSIT_TO_BACK
 import android.view.WindowManager.TRANSIT_TO_FRONT
 import android.view.WindowManager.transitTypeToString
 import android.widget.Toast
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import android.window.DesktopExperienceFlags.DesktopExperienceFlag
-import android.window.DesktopExperienceFlags.ENABLE_BUG_FIXES_FOR_SECONDARY_DISPLAY
-import android.window.DesktopExperienceFlags.ENABLE_NON_DEFAULT_DISPLAY_SPLIT
-import android.window.DesktopExperienceFlags.ENABLE_PER_DISPLAY_DESKTOP_WALLPAPER_ACTIVITY
-import android.window.DesktopModeFlags
-import android.window.DesktopModeFlags.DISABLE_NON_RESIZABLE_APP_SNAP_RESIZE
-import android.window.DesktopModeFlags.ENABLE_DESKTOP_WALLPAPER_ACTIVITY_FOR_SYSTEM_USER
-import android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_WALLPAPER_ACTIVITY
-import android.window.DesktopModeFlags.ENABLE_WINDOWING_DYNAMIC_INITIAL_BOUNDS
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags.ENABLE_BUG_FIXES_FOR_SECONDARY_DISPLAY
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags.ENABLE_NON_DEFAULT_DISPLAY_SPLIT
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags.ENABLE_PER_DISPLAY_DESKTOP_WALLPAPER_ACTIVITY
+import com.android.wm.shell.shared.compat.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags.DISABLE_NON_RESIZABLE_APP_SNAP_RESIZE
+import com.android.wm.shell.shared.compat.DesktopModeFlags.ENABLE_DESKTOP_WALLPAPER_ACTIVITY_FOR_SYSTEM_USER
+import com.android.wm.shell.shared.compat.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_WALLPAPER_ACTIVITY
+import com.android.wm.shell.shared.compat.DesktopModeFlags.ENABLE_WINDOWING_DYNAMIC_INITIAL_BOUNDS
 import android.window.RemoteTransition
 import android.window.SplashScreen.SPLASH_SCREEN_STYLE_ICON
 import android.window.TransitionInfo
@@ -4818,7 +4818,7 @@ class DesktopTasksController(
         }
         val registeredFlags = DesktopExperienceFlags.getRegisteredFlags()
         val maxRegisteredFlagName = registeredFlags.maxOf { it.flagName.length }
-        pw.println("${prefix}DesktopExperienceFlags.DesktopExperienceFlag")
+        pw.println("${prefix}android.window.DesktopExperienceFlags.DesktopExperienceFlag")
         for (flag in registeredFlags) {
             dumpFlag(flag, maxRegisteredFlagName + 1)
         }

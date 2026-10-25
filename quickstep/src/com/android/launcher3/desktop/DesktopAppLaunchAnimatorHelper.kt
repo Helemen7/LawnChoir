@@ -27,7 +27,7 @@ import android.view.SurfaceControl.Transaction
 import android.view.WindowManager.TRANSIT_CLOSE
 import android.view.WindowManager.TRANSIT_OPEN
 import android.view.WindowManager.TRANSIT_TO_BACK
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import android.window.TransitionInfo
 import android.window.TransitionInfo.Change
 import androidx.core.animation.addListener

@@ -67,7 +67,7 @@ import android.view.Display;
 import android.view.MotionEvent;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
-import android.window.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;

@@ -24,8 +24,8 @@ import android.app.ActivityManager.RunningTaskInfo;
 import android.content.Context;
 import android.util.SparseArray;
 import android.view.SurfaceControl;
-import android.window.DesktopExperienceFlags;
-import android.window.DesktopModeFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopModeFlags;
 
 import com.android.internal.protolog.ProtoLog;
 import com.android.wm.shell.ShellTaskOrganizer;

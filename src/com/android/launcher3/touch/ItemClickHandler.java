@@ -15,7 +15,7 @@
  */
 package com.android.launcher3.touch;
 
-import static android.multiuser.Flags.enableMovingContentIntoPrivateSpace;
+import static com.android.wm.shell.shared.compat.android.multiuser.Flags.enableMovingContentIntoPrivateSpace;
 
 import static com.android.launcher3.LauncherConstants.ActivityCodes.REQUEST_BIND_PENDING_APPWIDGET;
 import static com.android.launcher3.LauncherConstants.ActivityCodes.REQUEST_RECONFIGURE_APPWIDGET;

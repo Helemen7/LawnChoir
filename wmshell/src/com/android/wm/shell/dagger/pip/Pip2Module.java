@@ -19,7 +19,7 @@ package com.android.wm.shell.dagger.pip;
 import android.annotation.NonNull;
 import android.content.Context;
 import android.os.Handler;
-import android.window.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
 
 import com.android.internal.jank.InteractionJankMonitor;
 import com.android.wm.shell.RootTaskDisplayAreaOrganizer;

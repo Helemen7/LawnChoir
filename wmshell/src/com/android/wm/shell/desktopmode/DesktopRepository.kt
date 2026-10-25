@@ -24,8 +24,8 @@ import android.util.ArraySet
 import android.util.Slog
 import android.util.SparseArray
 import android.view.Display.INVALID_DISPLAY
-import android.window.DesktopExperienceFlags
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import android.window.WindowContainerToken
 import androidx.core.util.forEach
 import androidx.core.util.valueIterator

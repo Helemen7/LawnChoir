@@ -20,7 +20,7 @@ import android.app.ActivityManager
 import android.app.WindowConfiguration
 import android.view.Display
 import android.view.WindowManager
-import android.window.DesktopExperienceFlags.ENABLE_PROJECTED_DISPLAY_DESKTOP_MODE
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags.ENABLE_PROJECTED_DISPLAY_DESKTOP_MODE
 import com.android.wm.shell.bubbles.BubbleController
 import com.android.wm.shell.common.DisplayController
 import com.android.wm.shell.desktopmode.DesktopWallpaperActivity.Companion.isWallpaperTask

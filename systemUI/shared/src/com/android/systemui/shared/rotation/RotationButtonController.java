@@ -724,7 +724,7 @@ public class RotationButtonController {
         // Try to use the new API, fallback to old method if Flags class is not available
         // (e.g., on some OEM ROMs or Custom ROMs)
         try {
-            if (android.hardware.devicestate.feature.flags.Flags.deviceStatePropertyMigration()) {
+            if (com.android.wm.shell.shared.compat.android.hardware.devicestate.feature.flags.Flags.deviceStatePropertyMigration()) {
                 final DeviceStateManager deviceStateManager = mContext.getSystemService(
                         DeviceStateManager.class);
                 if (deviceStateManager == null) return false;

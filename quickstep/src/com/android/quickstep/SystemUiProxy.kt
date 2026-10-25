@@ -38,13 +38,14 @@ import android.os.Trace.traceBegin
 import android.os.Trace.traceEnd
 import android.os.UserHandle
 import android.util.Log
+import android.view.Display
 import android.view.IRemoteAnimationRunner
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.RemoteAnimationTarget
 import android.view.SurfaceControl
 import android.view.SurfaceControl.Transaction
-import android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_TASKBAR_RUNNING_APPS
+import com.android.wm.shell.shared.compat.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_TASKBAR_RUNNING_APPS
 import android.window.IOnBackInvokedCallback
 import android.window.RemoteTransition
 import android.window.TaskSnapshot
@@ -250,7 +251,7 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
 
     fun onBackEvent(backEvent: KeyEvent?) =
         executeWithErrorLog({ "Failed call onBackPressed" }) {
-            systemUiProxy?.onBackEvent(backEvent)
+            systemUiProxy?.onBackEvent(backEvent, Display.DEFAULT_DISPLAY)
         }
 
     fun onImeSwitcherPressed() =
@@ -472,8 +473,9 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
 
     fun takeScreenshot(request: ScreenshotRequest) =
         executeWithErrorLog({ "Failed call takeScreenshot" }) {
-            // LC-Ignored
-            //systemUiProxy?.takeScreenshot(request)
+            // The overview Screenshot action needs this. SystemUI on Android 17 handles it for the
+            // launcher it is bound to.
+            systemUiProxy?.takeScreenshot(request)
         }
 
     fun expandNotificationPanel() =
@@ -939,17 +941,54 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
     //
     // Remote transitions
     //
+    /**
+     * Android 17 changed `IShellTransitions.registerRemote` to take only the [RemoteTransition],
+     * which now carries its own filter. The compiled A16 stub sends the filter as a separate
+     * argument, which the shell cannot read, so no remote was ever registered. The PixelOS 17
+     * build also has one more method before it in the interface, so its transaction codes are the
+     * A16 ones plus one: `registerRemote` is 2 and `unregisterRemote` is 3.
+     */
+    private fun registerRemoteWithFilter(
+        remoteTransition: RemoteTransition,
+        filter: TransitionFilter,
+    ) {
+        val binder = (shellTransitions as? android.os.IInterface)?.asBinder() ?: return
+        RemoteTransition::class.java.getMethod("setFilter", TransitionFilter::class.java)
+            .invoke(remoteTransition, filter)
+        transactRemoteTransition(binder, SHELL_TRANSITIONS_REGISTER_REMOTE, remoteTransition)
+    }
+
+    private fun unregisterRemoteWithFilter(remoteTransition: RemoteTransition) {
+        val binder = (shellTransitions as? android.os.IInterface)?.asBinder() ?: return
+        transactRemoteTransition(binder, SHELL_TRANSITIONS_UNREGISTER_REMOTE, remoteTransition)
+    }
+
+    private fun transactRemoteTransition(
+        binder: IBinder,
+        code: Int,
+        remoteTransition: RemoteTransition,
+    ) {
+        val data = android.os.Parcel.obtain()
+        try {
+            data.writeInterfaceToken("com.android.wm.shell.shared.IShellTransitions")
+            data.writeTypedObject(remoteTransition, 0)
+            binder.transact(code, data, null, IBinder.FLAG_ONEWAY)
+        } finally {
+            data.recycle()
+        }
+    }
+
     fun registerRemoteTransition(remoteTransition: RemoteTransition?, filter: TransitionFilter) {
         remoteTransition ?: return
         executeWithErrorLog({ "Failed call registerRemoteTransition" }) {
-            shellTransitions?.registerRemote(filter, remoteTransition)
+            registerRemoteWithFilter(remoteTransition, filter)
         }
         remoteTransitions.putIfAbsent(remoteTransition, filter)
     }
 
     fun unregisterRemoteTransition(remoteTransition: RemoteTransition?) {
         executeWithErrorLog({ "Failed call unregisterRemoteTransition" }) {
-            shellTransitions?.unregisterRemote(remoteTransition)
+            remoteTransition?.let { unregisterRemoteWithFilter(it) }
         }
         remoteTransitions.remove(remoteTransition)
     }
@@ -1382,6 +1421,29 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
                 )
                 return true
             }
+            if (Build.VERSION.SDK_INT >= 37 &&
+                    code == android.os.IBinder.FIRST_CALL_TRANSACTION + 2) {
+                // Android 17 dropped minimizedHomeBounds, which the generated stub still reads.
+                data.enforceInterface(IRecentsAnimationRunner.DESCRIPTOR)
+                val controller = IRecentsAnimationController.Stub.asInterface(
+                    data.readStrongBinder())
+                val apps = data.createTypedArray(RemoteAnimationTarget.CREATOR)
+                val wallpapers = data.createTypedArray(RemoteAnimationTarget.CREATOR)
+                val homeContentInsets = data.readTypedObject(Rect.CREATOR)
+                val extras = data.readTypedObject(Bundle.CREATOR)
+                val transitionInfo = data.readTypedObject(TransitionInfo.CREATOR)
+                data.enforceNoDataAvail()
+                onAnimationStart(
+                    controller,
+                    apps,
+                    wallpapers,
+                    homeContentInsets,
+                    null,
+                    extras,
+                    transitionInfo,
+                )
+                return true
+            }
             return super.onTransact(code, data, reply, flags)
         }
 
@@ -1486,6 +1548,10 @@ class SystemUiProxy @Inject constructor(@ApplicationContext private val context:
 
     companion object {
         private const val TAG = "SystemUiProxy"
+
+        /** Transaction codes of `IShellTransitions` on PixelOS 17, one more than on Android 16. */
+        private const val SHELL_TRANSITIONS_REGISTER_REMOTE = IBinder.FIRST_CALL_TRANSACTION + 1
+        private const val SHELL_TRANSITIONS_UNREGISTER_REMOTE = IBinder.FIRST_CALL_TRANSACTION + 2
 
         /** LC-Note: Android 16.0 start recents transition binder code */
         private const val LC_TRANSACTION_startRecentsTransition_AOSP_BaklavaInitial =

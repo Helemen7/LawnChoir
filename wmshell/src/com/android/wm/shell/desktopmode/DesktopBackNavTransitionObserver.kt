@@ -22,8 +22,8 @@ import android.view.WindowManager.TRANSIT_CHANGE
 import android.view.WindowManager.TRANSIT_CLOSE
 import android.view.WindowManager.TRANSIT_TO_BACK
 import android.view.WindowManager.transitTypeToString
-import android.window.DesktopExperienceFlags
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import android.window.TransitionInfo
 import android.window.WindowContainerTransaction
 import com.android.internal.protolog.ProtoLog

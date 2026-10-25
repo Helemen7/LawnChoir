@@ -35,8 +35,8 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction
 import android.widget.ImageButton
-import android.window.DesktopExperienceFlags
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.AccessibilityActionCompat
 import com.android.internal.policy.SystemBarUtils

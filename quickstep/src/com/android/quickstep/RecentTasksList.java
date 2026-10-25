@@ -31,7 +31,7 @@ import android.content.pm.ParceledListSlice;
 import android.os.Process;
 import android.os.RemoteException;
 import android.util.SparseBooleanArray;
-import android.window.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;

@@ -191,7 +191,7 @@ constructor(
             UserCache.ACTION_PROFILE_REMOVED -> forceReload()
             UserCache.ACTION_PROFILE_AVAILABLE,
             UserCache.ACTION_PROFILE_UNAVAILABLE -> {
-                // This broadcast is only available when android.os.Flags.allowPrivateProfile() is
+                // This broadcast is only available when com.android.wm.shell.shared.compat.android.os.Flags.allowPrivateProfile() is
                 // set. For Work-profile this broadcast will be sent in addition to
                 // ACTION_MANAGED_PROFILE_AVAILABLE/UNAVAILABLE. So effectively, this if block only
                 // handles the non-work profile case.

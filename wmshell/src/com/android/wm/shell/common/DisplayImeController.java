@@ -431,7 +431,7 @@ public class DisplayImeController implements DisplayController.OnDisplaysChanged
 
             boolean hideAnimOngoing;
             boolean reportVisible;
-            if (android.view.inputmethod.Flags.reportAnimatingInsetsTypes()) {
+            if (com.android.wm.shell.shared.compat.android.view.inputmethod.Flags.reportAnimatingInsetsTypes()) {
                 hideAnimOngoing = false;
                 reportVisible = mImeRequestedVisible;
             } else {
@@ -632,7 +632,7 @@ public class DisplayImeController implements DisplayController.OnDisplaysChanged
                             mDisplayId, imeTop(hiddenY, defaultY), imeTop(shownY, defaultY),
                             (mAnimationDirection == DIRECTION_SHOW));
 
-                    if (android.view.inputmethod.Flags.reportAnimatingInsetsTypes()) {
+                    if (com.android.wm.shell.shared.compat.android.view.inputmethod.Flags.reportAnimatingInsetsTypes()) {
                         // Updating the animatingTypes when starting the animation is not the
                         // trigger to show the IME. Thus, not sending the statsToken here.
                         setAnimating(true /* imeAnimationOngoing */, null /* statsToken */);
@@ -684,7 +684,7 @@ public class DisplayImeController implements DisplayController.OnDisplaysChanged
                         t.setPosition(animatingLeash, x, y);
                         t.setAlpha(animatingLeash, 1f);
                     }
-                    if (android.view.inputmethod.Flags.reportAnimatingInsetsTypes()) {
+                    if (com.android.wm.shell.shared.compat.android.view.inputmethod.Flags.reportAnimatingInsetsTypes()) {
                         setAnimating(false /* imeAnimationOngoing */,
                                 mAnimationDirection == DIRECTION_HIDE ? statsToken : null);
                     }
@@ -696,7 +696,7 @@ public class DisplayImeController implements DisplayController.OnDisplaysChanged
                         // not animating anymore. Thus, not sending a statsToken here, but
                         // only later when we're updating the animatingTypes.
                         setVisibleDirectly(false /* visible */,
-                                !android.view.inputmethod.Flags.reportAnimatingInsetsTypes()
+                                !com.android.wm.shell.shared.compat.android.view.inputmethod.Flags.reportAnimatingInsetsTypes()
                                         ? statsToken : null);
                     } else if (mAnimationDirection == DIRECTION_SHOW && !mCancelled) {
                         ImeTracker.forLogging().onShown(mStatsToken);

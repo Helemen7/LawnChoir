@@ -42,6 +42,7 @@ public interface InputConsumer {
     int TYPE_CURSOR_HOVER = 1 << 14;
     int TYPE_NAV_HANDLE_LONG_PRESS = 1 << 15;
     int TYPE_BUBBLE_BAR = 1 << 16;
+    int TYPE_LAUNCH_INTERRUPT = 1 << 17;
 
     String[] NAMES = new String[] {
            "TYPE_NO_OP",                    // 0
@@ -61,6 +62,7 @@ public interface InputConsumer {
             "TYPE_CURSOR_HOVER",            // 14
             "TYPE_NAV_HANDLE_LONG_PRESS",   // 15
             "TYPE_BUBBLE_BAR",              // 16
+            "TYPE_LAUNCH_INTERRUPT",        // 17
     };
 
     InputConsumer DEFAULT_NO_OP = createNoOpInputConsumer(Display.DEFAULT_DISPLAY);

@@ -22,7 +22,7 @@ import android.os.IBinder
 import android.util.ArrayMap
 import android.view.SurfaceControl
 import android.view.WindowManager.TRANSIT_CHANGE
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import android.window.TransitionInfo
 import com.android.internal.protolog.ProtoLog
 import com.android.wm.shell.Flags.enableShellTopTaskTracking

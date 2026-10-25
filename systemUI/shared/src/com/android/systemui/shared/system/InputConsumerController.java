@@ -32,6 +32,8 @@ import android.view.InputEvent;
 import android.view.WindowManagerGlobal;
 
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /**
  * Manages the input consumer that allows the SystemUI to directly receive input.
@@ -137,12 +139,16 @@ public class InputConsumerController {
      */
     public void registerInputConsumer() {
         if (mInputEventReceiver == null) {
-            final InputChannel inputChannel = new InputChannel();
+            InputChannel inputChannel = null;
             try {
                 mWindowManager.destroyInputConsumer(mToken, DEFAULT_DISPLAY);
-                mWindowManager.createInputConsumer(mToken, mName, DEFAULT_DISPLAY, inputChannel);
+                inputChannel = createInputConsumer();
             } catch (RemoteException e) {
                 Log.e(TAG, "Failed to create input consumer", e);
+            }
+            if (inputChannel == null) {
+                // Without a channel there is nothing to receive input on.
+                return;
             }
             mInputEventReceiver = new InputEventReceiver(inputChannel, Looper.myLooper(),
                     Choreographer.getInstance());
@@ -150,6 +156,32 @@ public class InputConsumerController {
                 mRegistrationListener.onRegistrationChanged(true /* isRegistered */);
             }
         }
+    }
+
+    /**
+     * Creates the input consumer on the window manager. Android 17 returns the channel, earlier
+     * releases fill in an out parameter, and the stubs this is compiled against only know the
+     * latter, so the newer signature is looked up at runtime.
+     */
+    private InputChannel createInputConsumer() throws RemoteException {
+        try {
+            final Method createInputConsumer = IWindowManager.class.getMethod(
+                    "createInputConsumer", IBinder.class, String.class, int.class);
+            return (InputChannel) createInputConsumer.invoke(
+                    mWindowManager, mToken, mName, DEFAULT_DISPLAY);
+        } catch (NoSuchMethodException e) {
+            final InputChannel inputChannel = new InputChannel();
+            mWindowManager.createInputConsumer(mToken, mName, DEFAULT_DISPLAY, inputChannel);
+            return inputChannel;
+        } catch (InvocationTargetException e) {
+            if (e.getCause() instanceof RemoteException) {
+                throw (RemoteException) e.getCause();
+            }
+            Log.e(TAG, "Failed to create input consumer", e.getCause());
+        } catch (IllegalAccessException e) {
+            Log.e(TAG, "Failed to create input consumer", e);
+        }
+        return null;
     }
 
     /**

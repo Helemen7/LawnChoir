@@ -39,7 +39,7 @@ import android.view.InputEventReceiver;
 import android.view.InputMonitor;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
-import android.window.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
 
 import androidx.annotation.VisibleForTesting;
 

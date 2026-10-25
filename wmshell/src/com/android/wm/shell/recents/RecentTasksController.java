@@ -44,7 +44,7 @@ import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Slog;
 import android.util.SparseIntArray;
-import android.window.DesktopModeFlags;
+import com.android.wm.shell.shared.compat.DesktopModeFlags;
 import android.window.WindowContainerToken;
 import android.window.WindowContainerTransaction;
 

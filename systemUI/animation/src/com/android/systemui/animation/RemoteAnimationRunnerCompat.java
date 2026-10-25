@@ -22,8 +22,8 @@ import static android.view.WindowManager.TRANSIT_OLD_NONE;
 import static android.view.WindowManager.TRANSIT_OPEN;
 import static android.view.WindowManager.TRANSIT_TO_BACK;
 import static android.view.WindowManager.TRANSIT_TO_FRONT;
-import static android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_EXIT_BY_MINIMIZE_TRANSITION_BUGFIX;
-import static android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_EXIT_TRANSITIONS_BUGFIX;
+import static com.android.wm.shell.shared.compat.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_EXIT_BY_MINIMIZE_TRANSITION_BUGFIX;
+import static com.android.wm.shell.shared.compat.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_EXIT_TRANSITIONS_BUGFIX;
 import static android.window.TransitionInfo.FLAG_IS_WALLPAPER;
 
 import static com.android.internal.util.Preconditions.checkArgument;
@@ -49,8 +49,40 @@ import android.window.TransitionInfo;
 
 import com.android.wm.shell.shared.CounterRotator;
 
+import java.util.ArrayList;
+
 public abstract class RemoteAnimationRunnerCompat extends IRemoteAnimationRunner.Stub {
     private static final String TAG = "RemoteAnimRunnerCompat";
+
+    /**
+     * Implemented by runners that can hand a playing animation over to a transition that
+     * interrupts it, instead of having the playing animation cancelled (and so snapped to its end
+     * state) as soon as the interrupting transition is ready.
+     */
+    public interface InterruptibleRunner {
+        /**
+         * Cheap, thread-safe check of whether the playing animation may accept a merge now.
+         */
+        boolean canMerge();
+
+        /**
+         * Offers an interrupting "return to home" transition to the playing animation.
+         *
+         * <p>Called on a binder thread. The runner must call exactly one of the callbacks, on any
+         * thread: {@code onAccepted} once it took over the playing animation (it applies the
+         * start state of the interrupting transition and marks it merged), or {@code onRejected}
+         * to fall back to cancelling the playing animation.
+         */
+        void onMergeTransition(RemoteAnimationTarget[] apps, RemoteAnimationTarget[] wallpapers,
+                RemoteAnimationTarget[] nonApps, Runnable onAccepted, Runnable onRejected);
+
+        /**
+         * Cancels the playing animation, taking it to its end state first, and only then runs
+         * {@code afterCancel}, which finishes the transition. Finishing before the animation is at
+         * its end state hands the windows back to the system mid animation.
+         */
+        void cancelThenRun(Runnable afterCancel);
+    }
 
     public abstract void onAnimationStart(@WindowManager.TransitionOldType int transit,
             RemoteAnimationTarget[] apps, RemoteAnimationTarget[] wallpapers,
@@ -81,6 +113,8 @@ public abstract class RemoteAnimationRunnerCompat extends IRemoteAnimationRunner
     public static RemoteTransitionStub wrap(IRemoteAnimationRunner runner) {
         return new RemoteTransitionStub() {
             final ArrayMap<IBinder, Runnable> mFinishRunnables = new ArrayMap<>();
+            // Interrupting transitions merged into a playing one, released when it finishes.
+            final ArrayMap<IBinder, ArrayList<TransitionInfo>> mMergedInfos = new ArrayMap<>();
 
             @Override
             public void startAnimation(IBinder token, TransitionInfo info,
@@ -197,6 +231,15 @@ public abstract class RemoteAnimationRunnerCompat extends IRemoteAnimationRunner
                     // Release surface references now. This is apparently to free GPU memory
                     // before GC would.
                     info.releaseAllSurfaces();
+                    final ArrayList<TransitionInfo> mergedInfos;
+                    synchronized (mFinishRunnables) {
+                        mergedInfos = mMergedInfos.remove(token);
+                    }
+                    if (mergedInfos != null) {
+                        for (int i = mergedInfos.size() - 1; i >= 0; --i) {
+                            mergedInfos.get(i).releaseAllSurfaces();
+                        }
+                    }
                     // Don't release here since launcher might still be using them. Instead
                     // let launcher release them (eg. via RemoteAnimationTargets)
                     leashMap.clear();
@@ -232,6 +275,14 @@ public abstract class RemoteAnimationRunnerCompat extends IRemoteAnimationRunner
             public void mergeAnimation(IBinder token, TransitionInfo info,
                     SurfaceControl.Transaction t, IBinder mergeTarget,
                     IRemoteTransitionFinishedCallback finishCallback) throws RemoteException {
+                Log.d(TAG, "mergeAnimation: type=" + info.getType() + " flags=" + info.getFlags()
+                        + " changes=" + info.getChanges().size() + " interruptible="
+                        + (runner instanceof InterruptibleRunner));
+                if (runner instanceof InterruptibleRunner
+                        && tryMergeReturnToHome((InterruptibleRunner) runner, info, t,
+                                mergeTarget, finishCallback)) {
+                    return;
+                }
                 // TODO: hook up merge to recents onTaskAppeared if applicable. Until then, adapt
                 //       to legacy cancel.
                 final Runnable finishRunnable;
@@ -242,13 +293,115 @@ public abstract class RemoteAnimationRunnerCompat extends IRemoteAnimationRunner
                 t.close();
                 info.releaseAllSurfaces();
                 if (finishRunnable == null) return;
+                if (runner instanceof InterruptibleRunner) {
+                    ((InterruptibleRunner) runner).cancelThenRun(finishRunnable);
+                    return;
+                }
                 runner.onAnimationCancelled();
                 finishRunnable.run();
+            }
+
+            /**
+             * Lets {@code interruptible} take over the playing animation {@code mergeTarget} for
+             * an interrupting return to home. Returns false, having done nothing, if the merge
+             * isn't supported here, so the caller falls back to cancelling the playing animation.
+             */
+            private boolean tryMergeReturnToHome(InterruptibleRunner interruptible,
+                    TransitionInfo info, SurfaceControl.Transaction t, IBinder mergeTarget,
+                    IRemoteTransitionFinishedCallback finishCallback) {
+                if (!interruptible.canMerge()) return false;
+                if (!isPlainReturnToHome(info)) {
+                    Log.d(TAG, "Merge not attempted, not a plain return to home: type="
+                            + info.getType() + " flags=" + info.getFlags());
+                    return false;
+                }
+                synchronized (mFinishRunnables) {
+                    if (!mFinishRunnables.containsKey(mergeTarget)) {
+                        Log.d(TAG, "Merge not attempted, the playing transition is finished");
+                        return false;
+                    }
+                }
+                final ArrayMap<SurfaceControl, SurfaceControl> leashMap = new ArrayMap<>();
+                final RemoteAnimationTarget[] apps =
+                        RemoteAnimationTargetCompat.wrapApps(info, t, leashMap);
+                final RemoteAnimationTarget[] wallpapers =
+                        RemoteAnimationTargetCompat.wrapNonApps(
+                                info, true /* wallpapers */, t, leashMap);
+                final RemoteAnimationTarget[] nonApps =
+                        RemoteAnimationTargetCompat.wrapNonApps(
+                                info, false /* wallpapers */, t, leashMap);
+
+                final Runnable onAccepted = () -> {
+                    // Same layering as a regular return to home. The closing windows start hidden
+                    // since they only get their transform with the first frame of the runner's
+                    // animation, and would otherwise flash fullscreen for a frame.
+                    for (int i = info.getChanges().size() - 1; i >= 0; --i) {
+                        final TransitionInfo.Change change = info.getChanges().get(i);
+                        final SurfaceControl leash = leashMap.get(change.getLeash());
+                        if (leash == null) continue;
+                        if (!TransitionInfo.isIndependent(change, info)) continue;
+                        final int mode = change.getMode();
+                        if (mode == TRANSIT_CLOSE || mode == TRANSIT_TO_BACK) {
+                            t.setLayer(leash, info.getChanges().size() * 3 - i);
+                            t.setAlpha(leash, 0f);
+                        }
+                    }
+                    for (int i = wallpapers.length - 1; i >= 0; --i) {
+                        t.show(wallpapers[i].leash);
+                        t.setAlpha(wallpapers[i].leash, 1.f);
+                    }
+                    // The windows of the merged transition were made invisible by the launch that
+                    // it interrupts, so show the roots and the wrapped leashes explicitly.
+                    for (int i = info.getRootCount() - 1; i >= 0; --i) {
+                        t.show(info.getRoot(i).getLeash());
+                    }
+                    for (int i = info.getChanges().size() - 1; i >= 0; --i) {
+                        final TransitionInfo.Change change = info.getChanges().get(i);
+                        final SurfaceControl leash = leashMap.get(change.getLeash());
+                        if (leash == null) continue;
+                        final int mode = change.getMode();
+                        if (mode == TRANSIT_OPEN || mode == TRANSIT_TO_FRONT) {
+                            t.show(leash);
+                            t.setAlpha(leash, 1.f);
+                        }
+                    }
+                    t.apply();
+                    synchronized (mFinishRunnables) {
+                        ArrayList<TransitionInfo> merged = mMergedInfos.get(mergeTarget);
+                        if (merged == null) {
+                            merged = new ArrayList<>();
+                            mMergedInfos.put(mergeTarget, merged);
+                        }
+                        merged.add(info);
+                    }
+                    // The playing animation now also covers this transition, and finishes both.
+                    final SurfaceControl.Transaction finishTransaction =
+                            new SurfaceControl.Transaction();
+                    try {
+                        finishCallback.onTransitionFinished(null /* wct */, finishTransaction);
+                    } catch (RemoteException e) {
+                        Log.e(TAG, "Failed to finish a merged transition", e);
+                    }
+                    finishTransaction.close();
+                };
+                final Runnable onRejected = () -> {
+                    final Runnable finishRunnable;
+                    synchronized (mFinishRunnables) {
+                        finishRunnable = mFinishRunnables.remove(mergeTarget);
+                    }
+                    t.close();
+                    info.releaseAllSurfaces();
+                    if (finishRunnable == null) return;
+                    interruptible.cancelThenRun(finishRunnable);
+                };
+                interruptible.onMergeTransition(apps, wallpapers, nonApps, onAccepted, onRejected);
+                return true;
             }
 
             @Override
             public void onTransitionConsumed(IBinder transition, boolean aborted)
                     throws RemoteException {
+                Log.d(TAG, "onTransitionConsumed: aborted=" + aborted);
                 // Notify the remote runner that the transition has been canceled if the transition
                 // was merged into another transition or aborted
                 synchronized (mFinishRunnables) {
@@ -257,6 +410,33 @@ public abstract class RemoteAnimationRunnerCompat extends IRemoteAnimationRunner
                 runner.onAnimationCancelled();
             }
         };
+    }
+
+    /**
+     * Whether {@code info} only brings Home to the front and hides an app, without rotating the
+     * display or being a custom transition such as recents.
+     */
+    private static boolean isPlainReturnToHome(TransitionInfo info) {
+        if (info.getType() >= WindowManager.TRANSIT_FIRST_CUSTOM) return false;
+        boolean homeShown = false;
+        boolean appHidden = false;
+        for (int i = info.getChanges().size() - 1; i >= 0; --i) {
+            final TransitionInfo.Change change = info.getChanges().get(i);
+            if (change.getParent() == null && change.getEndRotation() >= 0
+                    && change.getEndRotation() != change.getStartRotation()) {
+                return false;
+            }
+            final int mode = change.getMode();
+            if (change.getTaskInfo() != null
+                    && change.getTaskInfo().getActivityType() == ACTIVITY_TYPE_HOME) {
+                homeShown |= mode == TRANSIT_OPEN || mode == TRANSIT_TO_FRONT;
+            } else if ((mode == TRANSIT_CLOSE || mode == TRANSIT_TO_BACK)
+                    && (change.getFlags() & FLAG_IS_WALLPAPER) == 0
+                    && TransitionInfo.isIndependent(change, info)) {
+                appHidden = true;
+            }
+        }
+        return homeShown && appHidden;
     }
 
     /**

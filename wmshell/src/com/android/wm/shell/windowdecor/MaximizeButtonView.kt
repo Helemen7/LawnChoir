@@ -30,7 +30,7 @@ import android.view.ViewStub
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ProgressBar
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import androidx.core.animation.doOnEnd
 import androidx.core.animation.doOnStart
 import androidx.core.content.ContextCompat

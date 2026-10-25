@@ -45,12 +45,32 @@ data class ThumbnailData(
     }
 
     companion object {
+        /**
+         * Android 17 stopped handing out the snapshot's hardware buffer (getHardwareBuffer()
+         * returns null) and has the snapshot wrap it itself. The stubs this is compiled against
+         * don't know that method, so it is looked up at runtime.
+         */
+        private fun wrapSnapshotToBitmap(snapshot: TaskSnapshot): Bitmap? {
+            try {
+                val wrap = TaskSnapshot::class.java.getMethod("wrapToBitmap")
+                return wrap.invoke(snapshot) as Bitmap?
+            } catch (e: NoSuchMethodException) {
+                // Releases before Android 17 give out the buffer.
+            } catch (e: ReflectiveOperationException) {
+                Log.e("ThumbnailData", "Failed to wrap the snapshot", e)
+                return null
+            }
+            var thumbnail: Bitmap? = null
+            snapshot.hardwareBuffer?.use { buffer ->
+                thumbnail = Bitmap.wrapHardwareBuffer(buffer, snapshot.colorSpace)
+            }
+            return thumbnail
+        }
+
         private fun makeThumbnail(snapshot: TaskSnapshot): Bitmap {
             var thumbnail: Bitmap? = null
             try {
-                snapshot.hardwareBuffer?.use { buffer ->
-                    thumbnail = Bitmap.wrapHardwareBuffer(buffer, snapshot.colorSpace)
-                }
+                thumbnail = wrapSnapshotToBitmap(snapshot)
             } catch (ex: IllegalArgumentException) {
                 // TODO(b/157562905): Workaround for a crash when we get a snapshot without this
                 // state

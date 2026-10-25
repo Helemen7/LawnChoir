@@ -58,7 +58,8 @@ import java.lang.ref.WeakReference;
  * the runner implementation.  When this animation manager is destroyed, we remove the Launcher
  * reference to the runner, leaving only the weak ref from the runner.
  */
-public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
+public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat
+        implements RemoteAnimationRunnerCompat.InterruptibleRunner {
 
     private static final RemoteAnimationFactory DEFAULT_FACTORY =
             (transit, appTargets, wallpaperTargets, nonAppTargets, result) ->
@@ -89,6 +90,9 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
             RemoteAnimationTarget[] wallpaperTargets,
             RemoteAnimationTarget[] nonAppTargets,
             Runnable runnable) {
+        Log.d("LauncherAnimationRunner", "onAnimationStart transit=" + transit + " apps="
+                + (appTargets == null ? 0 : appTargets.length) + " factory="
+                + getFactory().getClass().getSimpleName());
         Runnable r = () -> {
             finishExistingAnimation();
             mAnimationResult = new AnimationResult(() -> mAnimationResult = null, runnable);
@@ -123,6 +127,63 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
         return factory != null ? factory : DEFAULT_FACTORY;
     }
 
+    @Override
+    public boolean canMerge() {
+        return getFactory() instanceof MergeableFactory mergeable && mergeable.canMergeClosing();
+    }
+
+    @BinderThread
+    @Override
+    public void onMergeTransition(
+            RemoteAnimationTarget[] appTargets,
+            RemoteAnimationTarget[] wallpaperTargets,
+            RemoteAnimationTarget[] nonAppTargets,
+            Runnable onAccepted,
+            Runnable onRejected) {
+        postAsyncCallback(mHandler, () -> {
+            if (mAnimationResult != null
+                    && getFactory() instanceof MergeableFactory mergeable
+                    && mergeable.onMergeClosing(appTargets, wallpaperTargets, nonAppTargets,
+                            mAnimationResult, onAccepted)) {
+                return;
+            }
+            Log.d("LauncherAnimationRunner", "Merge rejected, cancelling the playing animation");
+            onRejected.run();
+        });
+    }
+
+    @BinderThread
+    @Override
+    public void cancelThenRun(Runnable afterCancel) {
+        Log.d("LauncherAnimationRunner", "cancelThenRun");
+        postAsyncCallback(mHandler, () -> {
+            if (mAnimationResult != null) {
+                mAnimationResult.endAnimation();
+            }
+            finishExistingAnimation();
+            getFactory().onAnimationCancelled();
+            afterCancel.run();
+        });
+    }
+
+    /** The animation result that is playing now, if any. */
+    private static volatile java.lang.ref.WeakReference<AnimationResult> sPlaying;
+
+    /**
+     * Takes the playing animation, such as an app closing into its icon, to its end state and
+     * finishes its transition. Called when a new launch is starting, so that the system has
+     * committed the end state of the playing transition before it collects the new one.
+     */
+    @UiThread
+    public static void endPlayingAnimation() {
+        java.lang.ref.WeakReference<AnimationResult> ref = sPlaying;
+        AnimationResult playing = ref != null ? ref.get() : null;
+        if (playing != null) {
+            Log.d("LauncherAnimationRunner", "endPlayingAnimation");
+            playing.endAnimation();
+        }
+    }
+
     @UiThread
     private void finishExistingAnimation() {
         if (mAnimationResult != null) {
@@ -137,7 +198,14 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
     @BinderThread
     @Override
     public void onAnimationCancelled() {
+        Log.d("LauncherAnimationRunner", "onAnimationCancelled");
         postAsyncCallback(mHandler, () -> {
+            // The transition is superseded, for example by an icon opened while the app is still
+            // closing. Jump the playing animation to its end state, otherwise it keeps writing to
+            // the leashes while the next animation starts and the two fight over them.
+            if (mAnimationResult != null) {
+                mAnimationResult.endAnimation();
+            }
             finishExistingAnimation();
             getFactory().onAnimationCancelled();
         });
@@ -157,7 +225,9 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
         private final Runnable mASyncFinishRunnable;
 
         private AnimatorSet mAnimator;
+        private AnimatorListenerAdapter mEndListener;
         private Runnable mOnCompleteCallback;
+        private Runnable mCarriedOverCompleteCallback;
         private boolean mFinished = false;
         private boolean mInitialized = false;
 
@@ -168,6 +238,7 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
 
         @UiThread
         private void finish() {
+            Log.d("LauncherAnimationRunner", "AnimationResult.finish finished=" + mFinished);
             if (!mFinished) {
                 mSyncFinishRunnable.run();
                 UI_HELPER_EXECUTOR.execute(() -> {
@@ -177,6 +248,15 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
                     }
                 });
                 mFinished = true;
+            }
+        }
+
+        /** Ends the playing animation at its final state, which also finishes the transition. */
+        @UiThread
+        private void endAnimation() {
+            AnimatorSet animator = mAnimator;
+            if (animator != null && !mFinished && animator.isStarted()) {
+                animator.end();
             }
         }
 
@@ -197,8 +277,11 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
                 throw new IllegalStateException("Animation already initialized");
             }
             mInitialized = true;
+            sPlaying = new java.lang.ref.WeakReference<>(this);
             mAnimator = animation;
-            mOnCompleteCallback = onCompleteCallback;
+            mOnCompleteCallback = onCompleteCallback != null
+                    ? onCompleteCallback : mCarriedOverCompleteCallback;
+            mCarriedOverCompleteCallback = null;
             if (mAnimator == null) {
                 finish();
             } else if (mFinished) {
@@ -210,12 +293,13 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
                 }
             } else {
                 // Start the animation
-                mAnimator.addListener(new AnimatorListenerAdapter() {
+                mEndListener = new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
                         finish();
                     }
-                });
+                };
+                mAnimator.addListener(mEndListener);
                 if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU) {
                     mAnimator.start();
                 }
@@ -234,13 +318,56 @@ public class LauncherAnimationRunner extends RemoteAnimationRunnerCompat {
         }
 
         /**
+         * Stops the playing animation without finishing the transition, so that
+         * {@link #setAnimation} can be called again with the animation that takes over. The
+         * transition only finishes once that animation ends. The on complete callback of the
+         * stopped animation carries over, unless the new animation sets its own.
+         */
+        @UiThread
+        public void beginReplace() {
+            if (mFinished) {
+                throw new IllegalStateException("Animation already finished");
+            }
+            AnimatorSet previous = mAnimator;
+            mAnimator = null;
+            mInitialized = false;
+            mCarriedOverCompleteCallback = mOnCompleteCallback;
+            if (previous != null) {
+                previous.removeListener(mEndListener);
+                previous.cancel();
+            }
+            mEndListener = null;
+        }
+
+        /**
          * When used as a simple IRemoteAnimationFinishedCallback, this method is used to run the
          * animation finished runnable.
          */
+
         @Override
         public void onAnimationFinished() {
             mASyncFinishRunnable.run();
         }
+    }
+
+    /**
+     * A {@link RemoteAnimationFactory} whose playing animation can hand over to an interrupting
+     * transition that returns to Home.
+     */
+    public interface MergeableFactory {
+
+        /** Whether the playing animation can currently be interrupted. Called on a binder thread. */
+        boolean canMergeClosing();
+
+        /**
+         * Takes over {@code result} for the interrupting transition, calling {@code onAccepted}
+         * once the interrupting transition's windows may be shown. Returns false, without calling
+         * it, if the animation can't be taken over.
+         */
+        @UiThread
+        boolean onMergeClosing(RemoteAnimationTarget[] appTargets,
+                RemoteAnimationTarget[] wallpaperTargets, RemoteAnimationTarget[] nonAppTargets,
+                AnimationResult result, Runnable onAccepted);
     }
 
     /**

@@ -18,8 +18,8 @@ package com.android.wm.shell.desktopmode.persistence
 
 import android.content.Context
 import android.view.Display
-import android.window.DesktopExperienceFlags
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import com.android.internal.protolog.ProtoLog
 import com.android.wm.shell.desktopmode.DesktopRepository
 import com.android.wm.shell.desktopmode.DesktopUserRepositories

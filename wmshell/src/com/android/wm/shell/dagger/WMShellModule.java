@@ -16,11 +16,11 @@
 
 package com.android.wm.shell.dagger;
 
-import static android.window.DesktopExperienceFlags.ENABLE_WINDOWING_TRANSITION_HANDLERS_OBSERVERS;
-import static android.window.DesktopModeFlags.ENABLE_DESKTOP_SYSTEM_DIALOGS_TRANSITIONS;
-import static android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_ENTER_TRANSITIONS_BUGFIX;
-import static android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_MODALS_POLICY;
-import static android.window.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_TASK_LIMIT;
+import static com.android.wm.shell.shared.compat.DesktopExperienceFlags.ENABLE_WINDOWING_TRANSITION_HANDLERS_OBSERVERS;
+import static com.android.wm.shell.shared.compat.DesktopModeFlags.ENABLE_DESKTOP_SYSTEM_DIALOGS_TRANSITIONS;
+import static com.android.wm.shell.shared.compat.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_ENTER_TRANSITIONS_BUGFIX;
+import static com.android.wm.shell.shared.compat.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_MODALS_POLICY;
+import static com.android.wm.shell.shared.compat.DesktopModeFlags.ENABLE_DESKTOP_WINDOWING_TASK_LIMIT;
 
 import static com.android.systemui.Flags.enableViewCaptureTracing;
 import static com.android.window.flags2.Flags.enableInorderTransitionCallbacksForDesktop;
@@ -39,8 +39,8 @@ import android.view.Choreographer;
 import android.view.IWindowManager;
 import android.view.SurfaceControl;
 import android.view.WindowManager;
-import android.window.DesktopExperienceFlags;
-import android.window.DesktopModeFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopModeFlags;
 
 import androidx.annotation.OptIn;
 

@@ -19,7 +19,7 @@ package com.android.launcher3.taskbar
 import android.content.Context
 import android.util.SparseArray
 import android.view.View
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import androidx.annotation.VisibleForTesting
 import com.android.launcher3.DeviceProfile
 import com.android.launcher3.LauncherAppState

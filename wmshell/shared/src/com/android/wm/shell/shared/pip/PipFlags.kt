@@ -20,7 +20,7 @@ import android.app.AppGlobals
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
-import android.window.DesktopExperienceFlags.ENABLE_DESKTOP_WINDOWING_PIP
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags.ENABLE_DESKTOP_WINDOWING_PIP
 import com.android.wm.shell.Flags
 
 class PipFlags {

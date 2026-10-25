@@ -35,7 +35,7 @@ import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceControl;
-import android.window.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
 import android.window.DisplayAreaInfo;
 import android.window.WindowContainerTransaction;
 

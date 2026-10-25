@@ -19,7 +19,7 @@ package com.android.quickstep.util;
 import static com.android.quickstep.util.QuickstepProtoLogGroup.RECENTS_WINDOW;
 import static com.android.quickstep.util.QuickstepProtoLogGroup.isProtoLogInitialized;
 
-import android.window.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
 
 import androidx.annotation.NonNull;
 
@@ -39,9 +39,9 @@ import com.android.launcher3.Flags;
  */
 @RequiresApi(31) // LC-Note: IProtoLogGroup only available to Android 11 Releases 41, or Android 12.0 for us. DO NOT call anything related to this or ProtoLog 
 public class RecentsWindowProtoLogProxy {
-    private static final DesktopExperienceFlags.DesktopExperienceFlag
+    private static final android.window.DesktopExperienceFlags.DesktopExperienceFlag
             ENABLE_RECENTS_WINDOW_PROTO_LOG =
-                    new DesktopExperienceFlags.DesktopExperienceFlag(
+                    new android.window.DesktopExperienceFlags.DesktopExperienceFlag(
                             Flags::enableRecentsWindowProtoLog,
                             false,
                             Flags.FLAG_ENABLE_RECENTS_WINDOW_PROTO_LOG);

@@ -276,7 +276,7 @@ public final class QuickstepWidgetHolder extends LauncherWidgetHolder {
         @Nullable
         @Override
         public AppWidgetEvent collectWidgetEvent() {
-            if (!android.appwidget.flags.Flags.engagementMetrics()) return null;
+            if (!com.android.wm.shell.shared.compat.android.appwidget.flags.Flags.engagementMetrics()) return null;
 
             CompletableFuture<AppWidgetEvent> future = new CompletableFuture<>();
             MAIN_EXECUTOR.execute(() -> {

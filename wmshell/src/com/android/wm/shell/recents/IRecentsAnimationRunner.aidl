@@ -53,8 +53,6 @@ oneway interface IRecentsAnimationRunner {
      * Called when the system is ready for the handler to start animating all the visible tasks.
      *
      * @param homeContentInsets The current home app content insets
-     * @param minimizedHomeBounds Specifies the bounds of the minimized home app, will be
-     *                            {@code null} if the device is not currently in split screen
      */
     void onAnimationStart(in IRecentsAnimationController controller,
             in RemoteAnimationTarget[] apps, in RemoteAnimationTarget[] wallpapers,

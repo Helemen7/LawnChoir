@@ -17,7 +17,7 @@
 package com.android.wm.shell.pip2.phone;
 
 import android.app.ActivityTaskManager;
-import android.app.Flags;
+import com.android.wm.shell.shared.compat.android.app.Flags;
 import android.app.PictureInPictureUiState;
 import android.os.Bundle;
 import android.os.RemoteException;

@@ -105,7 +105,7 @@ interface ISystemUiProxy {
     /**
      * Notifies SystemUI of a back KeyEvent.
      */
-    oneway void onBackEvent(in KeyEvent keyEvent) = 44;
+    oneway void onBackEvent(in KeyEvent keyEvent, int displayId) = 44;
 
     /** Sets home rotation enabled. */
     oneway void setHomeRotationEnabled(boolean enabled) = 45;

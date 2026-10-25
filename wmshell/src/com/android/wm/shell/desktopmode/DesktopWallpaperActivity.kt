@@ -22,7 +22,7 @@ import android.content.ComponentName
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 
 /**
  * A transparent activity used in the desktop mode to show the wallpaper under the freeform windows.

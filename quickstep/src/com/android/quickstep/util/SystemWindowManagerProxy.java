@@ -25,7 +25,7 @@ import android.view.DisplayCutout;
 import android.view.Surface;
 import android.view.WindowManager;
 import android.view.WindowMetrics;
-import android.window.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
 
 import com.android.internal.policy.SystemBarUtils;
 import com.android.launcher3.dagger.LauncherAppSingleton;

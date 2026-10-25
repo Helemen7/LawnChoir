@@ -28,7 +28,7 @@ import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.SurfaceControl;
 import android.view.View;
-import android.window.DesktopModeFlags;
+import com.android.wm.shell.shared.compat.DesktopModeFlags;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.wm.shell.R;

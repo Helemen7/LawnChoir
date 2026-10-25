@@ -34,7 +34,7 @@ import android.content.res.Configuration.ORIENTATION_PORTRAIT
 import android.graphics.Rect
 import android.os.SystemProperties
 import android.util.Size
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import com.android.internal.policy.DesktopModeCompatUtils
 import com.android.wm.shell.ShellTaskOrganizer
 import com.android.wm.shell.common.DisplayController

@@ -24,7 +24,7 @@ import android.view.MotionEvent
 import android.view.MotionEvent.TOOL_TYPE_FINGER
 import android.view.MotionEvent.TOOL_TYPE_MOUSE
 import android.view.MotionEvent.TOOL_TYPE_STYLUS
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import com.android.internal.annotations.VisibleForTesting
 import com.android.internal.protolog.ProtoLog
 import com.android.internal.util.FrameworkStatsLog

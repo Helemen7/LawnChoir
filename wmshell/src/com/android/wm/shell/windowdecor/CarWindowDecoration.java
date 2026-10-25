@@ -28,7 +28,7 @@ import android.view.InsetsState;
 import android.view.SurfaceControl;
 import android.view.View;
 import android.view.WindowInsets;
-import android.window.DesktopModeFlags;
+import com.android.wm.shell.shared.compat.DesktopModeFlags;
 import android.window.WindowContainerTransaction;
 
 import androidx.annotation.NonNull;

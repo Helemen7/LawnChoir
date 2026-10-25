@@ -44,7 +44,7 @@ import android.window.BackEvent.EDGE_RIGHT
 import android.window.BackMotionEvent
 import android.window.BackNavigationInfo
 import android.window.BackProgressAnimator
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import android.window.IOnBackInvokedCallback
 import com.android.internal.dynamicanimation.animation.FloatValueHolder
 import com.android.internal.dynamicanimation.animation.SpringAnimation

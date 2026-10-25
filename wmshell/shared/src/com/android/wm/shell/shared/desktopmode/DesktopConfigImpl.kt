@@ -20,8 +20,8 @@ import android.app.TaskInfo
 import android.content.Context
 import android.os.SystemProperties
 import android.util.IndentingPrintWriter
-import android.window.DesktopExperienceFlags
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import com.android.internal.R
 import com.android.internal.annotations.VisibleForTesting
 import com.android.wm.shell.shared.desktopmode.DesktopConfigImpl.Companion.WINDOW_DECOR_PRE_WARM_SIZE

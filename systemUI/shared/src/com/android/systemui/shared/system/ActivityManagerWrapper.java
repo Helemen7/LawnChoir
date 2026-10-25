@@ -132,12 +132,45 @@ public class ActivityManagerWrapper {
     }
 
     /**
+     * Gets or takes a task snapshot. Android 17 moved this from IActivityTaskManager to
+     * android.window.TaskSnapshotManager, which the stubs this is compiled against don't have, so
+     * it is called by reflection. Earlier releases still go through IActivityTaskManager.
+     */
+    private static TaskSnapshot getSnapshotFromManager(int taskId, boolean isLowResolution,
+            boolean take) throws RemoteException {
+        try {
+            final Class<?> managerClass = Class.forName("android.window.TaskSnapshotManager");
+            final Object manager = managerClass.getMethod("getInstance").invoke(null);
+            if (take) {
+                return (TaskSnapshot) managerClass.getMethod("takeTaskSnapshot",
+                        int.class, boolean.class).invoke(manager, taskId, true /* updateCache */);
+            }
+            // RESOLUTION_HIGH = 1, RESOLUTION_LOW = 2
+            return (TaskSnapshot) managerClass.getMethod("getTaskSnapshot",
+                    int.class, int.class).invoke(manager, taskId, isLowResolution ? 2 : 1);
+        } catch (ClassNotFoundException | NoSuchMethodException e) {
+            // Releases before Android 17.
+            return take
+                    ? getService().takeTaskSnapshot(taskId, /* updateCache= */ true)
+                    : getService().getTaskSnapshot(taskId, isLowResolution);
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            if (e.getCause() instanceof RemoteException) {
+                throw (RemoteException) e.getCause();
+            }
+            Log.w(TAG, "Failed to get a task snapshot", e.getCause());
+        } catch (IllegalAccessException e) {
+            Log.w(TAG, "Failed to get a task snapshot", e);
+        }
+        return null;
+    }
+
+    /**
      * @return the task snapshot for the given {@param taskId}.
      */
     public @NonNull ThumbnailData getTaskThumbnail(int taskId, boolean isLowResolution) {
         TaskSnapshot snapshot = null;
         try {
-            snapshot = getService().getTaskSnapshot(taskId, isLowResolution);
+            snapshot = getSnapshotFromManager(taskId, isLowResolution, false /* take */);
         } catch (RemoteException e) {
             Log.w(TAG, "Failed to retrieve task snapshot", e);
         }
@@ -157,7 +190,7 @@ public class ActivityManagerWrapper {
     public ThumbnailData takeTaskThumbnail(int taskId) {
         TaskSnapshot snapshot = null;
         try {
-            snapshot = getService().takeTaskSnapshot(taskId, /* updateCache= */ true);
+            snapshot = getSnapshotFromManager(taskId, false /* isLowResolution */, true /* take */);
         } catch (RemoteException e) {
             Log.w(TAG, "Failed to take task snapshot", e);
         }

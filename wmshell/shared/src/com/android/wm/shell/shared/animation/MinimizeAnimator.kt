@@ -23,7 +23,7 @@ import android.content.Context
 import android.os.Handler
 import android.view.Choreographer
 import android.view.SurfaceControl.Transaction
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import android.window.TransitionInfo.Change
 import com.android.internal.jank.Cuj.CUJ_DESKTOP_MODE_MINIMIZE_WINDOW
 import com.android.internal.jank.InteractionJankMonitor

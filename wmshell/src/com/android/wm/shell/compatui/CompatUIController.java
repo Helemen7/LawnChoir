@@ -39,7 +39,7 @@ import android.view.Display;
 import android.view.InsetsSourceControl;
 import android.view.InsetsState;
 import android.view.accessibility.AccessibilityManager;
-import android.window.DesktopModeFlags;
+import com.android.wm.shell.shared.compat.DesktopModeFlags;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.wm.shell.ShellTaskOrganizer;

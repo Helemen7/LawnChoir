@@ -30,7 +30,7 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
-import android.os.Flags.allowPrivateProfile
+import com.android.wm.shell.shared.compat.android.os.Flags.allowPrivateProfile
 import android.os.IBinder
 import android.os.UserHandle
 import android.os.UserManager

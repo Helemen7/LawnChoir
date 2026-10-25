@@ -960,6 +960,10 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
     @Override
     protected void onNewIntent(Intent intent) {
         boolean intentHasGnc = GestureNavContract.canBuildFromIntent(intent);
+        if (intent != null && Intent.ACTION_MAIN.equals(intent.getAction())
+                && intent.hasCategory(Intent.CATEGORY_HOME) && mAppTransitionManager != null) {
+            mAppTransitionManager.queueCloseIfLaunchPending();
+        }
         super.onNewIntent(intent);
         OverviewCommandHelper overviewCommandHelper = mTISBindHelper.getOverviewCommandHelper();
         if (overviewCommandHelper != null) {
@@ -1052,6 +1056,9 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
             return false;
         }
 
+        if (mAppTransitionManager != null && mAppTransitionManager.queueCloseIfLaunchPending()) {
+            return true;
+        }
         if (Utilities.ATLEAST_U) getOnBackAnimationCallback().onBackInvoked();
         return true;
     }
@@ -1077,6 +1084,10 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
                         @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
                         @Override
                         public void onBackInvokedCompat() {
+                            if (mAppTransitionManager != null
+                                    && mAppTransitionManager.queueCloseIfLaunchPending()) {
+                                return;
+                            }
                             // Recreate mActiveOnBackAnimationCallback if necessary to avoid NPE
                             // because:
                             // 1. b/260636433: In 3-button-navigation mode, onBackStarted() is not

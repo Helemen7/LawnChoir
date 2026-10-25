@@ -64,7 +64,7 @@ import android.view.Choreographer;
 import android.view.Display;
 import android.view.Surface;
 import android.view.SurfaceControl;
-import android.window.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
 import android.window.DisplayAreaInfo;
 import android.window.TaskOrganizer;
 import android.window.TaskSnapshot;

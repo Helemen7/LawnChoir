@@ -29,8 +29,8 @@ import android.hardware.display.DisplayManager;
 import android.os.SystemProperties;
 import android.view.Display;
 import android.view.WindowManager;
-import android.window.DesktopExperienceFlags;
-import android.window.DesktopModeFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopModeFlags;
 
 import com.android.internal.R;
 import com.android.internal.annotations.VisibleForTesting;

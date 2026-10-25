@@ -30,7 +30,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Pair
 import android.util.TypedValue
-import android.window.DesktopExperienceFlags.ENABLE_DESKTOP_WINDOWING_PIP
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags.ENABLE_DESKTOP_WINDOWING_PIP
 import android.window.TaskSnapshot
 import android.window.TransitionInfo
 import com.android.internal.protolog.ProtoLog

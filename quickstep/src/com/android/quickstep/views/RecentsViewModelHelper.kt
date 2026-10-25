@@ -24,6 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** Helper for [RecentsView] to interact with the [RecentsViewModel]. */
 class RecentsViewModelHelper(
@@ -44,11 +45,19 @@ class RecentsViewModelHelper(
         // viewAttachedScope.
         recentsViewModel.setRunningTaskShowScreenshot(true)
         recentsCoroutineScope.launch(dispatcherProvider.lightweightBackground) {
-            recentsViewModel.waitForRunningTaskShowScreenshotToUpdate()
-            recentsViewModel.waitForThumbnailsToUpdate(updatedThumbnails)
+            // The repository does not always emit the new snapshot on PixelOS 17, which left the
+            // callback (screenshot, lens, ...) waiting forever, so the waits are bounded.
+            withTimeoutOrNull(SCREENSHOT_WAIT_TIMEOUT_MS) {
+                recentsViewModel.waitForRunningTaskShowScreenshotToUpdate()
+                recentsViewModel.waitForThumbnailsToUpdate(updatedThumbnails)
+            }
             withContext(dispatcherProvider.main) {
                 ViewUtils.postFrameDrawn(taskView, onFinishRunnable)
             }
         }
+    }
+
+    private companion object {
+        const val SCREENSHOT_WAIT_TIMEOUT_MS = 400L
     }
 }

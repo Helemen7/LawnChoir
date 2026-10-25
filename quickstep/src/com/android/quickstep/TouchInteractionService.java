@@ -113,6 +113,7 @@ import com.android.quickstep.fallback.window.RecentsWindowSwipeHandler;
 import com.android.quickstep.input.QuickstepKeyGestureEventsManager;
 import com.android.quickstep.input.QuickstepKeyGestureEventsManager.OverviewGestureHandler;
 import com.android.quickstep.inputconsumers.BubbleBarInputConsumer;
+import com.android.quickstep.inputconsumers.LaunchInterruptInputConsumer;
 import com.android.quickstep.inputconsumers.OneHandedModeInputConsumer;
 import com.android.quickstep.util.ActiveGestureLog;
 import com.android.quickstep.util.ActiveGestureLog.CompoundString;
@@ -1129,6 +1130,15 @@ public class TouchInteractionService extends Service {
                             + "consuming gesture as no-op");
                     mUncheckedConsumer = createNoOpInputConsumer(displayId);
                 }
+            } else if (!isOneHandedModeActive && isInSwipeUpTouchRegion
+                    && LaunchInterruptInputConsumer.isLaunchAnimationRunning()) {
+                reasonString.append("an app launch animation is running, a swipe up goes home");
+                GestureState launchGestureState = createGestureState(
+                        displayId, mGestureState, getTrackpadGestureType(event));
+                mConsumer.onConsumerAboutToBeSwitched();
+                mGestureState = launchGestureState;
+                mConsumer = new LaunchInterruptInputConsumer(this, displayId, inputMonitorCompat);
+                mUncheckedConsumer = mConsumer;
             } else if ((!isOneHandedModeActive && isInSwipeUpTouchRegion)
                     || isHoverActionWithoutConsumer || isOnBubbles) {
                 reasonString.append(!isOneHandedModeActive && isInSwipeUpTouchRegion

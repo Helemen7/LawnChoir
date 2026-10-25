@@ -65,7 +65,7 @@ import android.animation.ValueAnimator;
 import android.graphics.PointF;
 import android.view.MotionEvent;
 import android.view.animation.Interpolator;
-import android.window.DesktopModeFlags;
+import com.android.wm.shell.shared.compat.DesktopModeFlags;
 
 import com.android.internal.jank.Cuj;
 import com.android.launcher3.LauncherState;

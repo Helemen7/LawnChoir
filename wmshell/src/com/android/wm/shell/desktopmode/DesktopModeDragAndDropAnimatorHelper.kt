@@ -23,7 +23,7 @@ import android.content.Context
 import android.graphics.Rect
 import android.view.Choreographer
 import android.view.SurfaceControl.Transaction
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import android.window.TransitionInfo.Change
 import androidx.core.util.Supplier
 import com.android.wm.shell.animation.FloatProperties

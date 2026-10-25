@@ -15,7 +15,7 @@
  */
 package com.android.launcher3.taskbar;
 
-import static android.window.DesktopModeFlags.ENABLE_TASKBAR_OVERFLOW;
+import static com.android.wm.shell.shared.compat.DesktopModeFlags.ENABLE_TASKBAR_OVERFLOW;
 
 import static com.android.launcher3.taskbar.TaskbarDesktopExperienceFlags.enableAltTabKqsFlatenning;
 import static com.android.launcher3.taskbar.TaskbarDesktopExperienceFlags.enableAltTabKqsOnConnectedDisplays;

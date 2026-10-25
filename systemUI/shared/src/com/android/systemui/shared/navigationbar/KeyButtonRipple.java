@@ -19,7 +19,7 @@ package com.android.systemui.shared.navigationbar;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
-import android.companion.virtualdevice.flags.Flags;
+import com.android.wm.shell.shared.compat.android.companion.virtualdevice.flags.Flags;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.CanvasProperty;

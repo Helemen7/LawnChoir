@@ -26,7 +26,7 @@ import static com.android.wm.shell.pip.PipAnimationController.isInPipDirection;
 import android.annotation.IntDef;
 import android.annotation.Nullable;
 import android.app.ActivityTaskManager;
-import android.app.Flags;
+import com.android.wm.shell.shared.compat.android.app.Flags;
 import android.app.PictureInPictureParams;
 import android.app.PictureInPictureUiState;
 import android.app.TaskInfo;

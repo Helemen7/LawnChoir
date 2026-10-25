@@ -25,7 +25,7 @@ import android.view.SurfaceControlViewHost
 import android.view.WindowInsets.Type.systemBars
 import android.view.WindowManager
 import android.view.WindowlessWindowManager
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import android.window.TaskConstants
 import android.window.TaskSnapshot
 import androidx.compose.ui.graphics.toArgb

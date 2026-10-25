@@ -45,7 +45,7 @@ import android.util.Log;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.inputmethod.Flags;
+import com.android.wm.shell.shared.compat.android.view.inputmethod.Flags;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;

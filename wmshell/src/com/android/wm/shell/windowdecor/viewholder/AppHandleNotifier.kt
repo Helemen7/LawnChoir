@@ -17,7 +17,7 @@
 package com.android.wm.shell.windowdecor.viewholder
 
 import android.util.Log
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import com.android.internal.protolog.ProtoLog
 import com.android.wm.shell.common.ShellExecutor
 import com.android.wm.shell.desktopmode.CaptionState

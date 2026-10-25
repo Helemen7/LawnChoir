@@ -43,7 +43,7 @@ import android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.Space
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import android.window.SurfaceSyncGroup
 import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting

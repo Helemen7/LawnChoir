@@ -36,7 +36,7 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowManager.LayoutParams
 import android.view.WindowlessWindowManager
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import android.window.TaskConstants
 import android.window.WindowContainerTransaction
 import com.android.app.tracing.traceSection

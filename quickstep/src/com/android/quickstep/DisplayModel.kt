@@ -21,7 +21,7 @@ import android.hardware.display.DisplayManager
 import android.util.Log
 import android.util.SparseArray
 import android.view.Display
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import androidx.core.util.valueIterator
 import com.android.app.displaylib.DisplayDecorationListener
 import com.android.app.displaylib.DisplaysWithDecorationsRepositoryCompat

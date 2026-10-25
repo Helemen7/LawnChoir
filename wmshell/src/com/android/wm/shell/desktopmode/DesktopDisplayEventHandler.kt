@@ -21,9 +21,9 @@ import android.os.UserHandle
 import android.os.UserManager
 import android.view.Display
 import android.view.Display.DEFAULT_DISPLAY
-import android.window.DesktopExperienceFlags
-import android.window.DesktopExperienceFlags.ENABLE_MULTIPLE_DESKTOPS_ACTIVATION_IN_DESKTOP_FIRST_DISPLAYS
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags.ENABLE_MULTIPLE_DESKTOPS_ACTIVATION_IN_DESKTOP_FIRST_DISPLAYS
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import android.window.DisplayAreaInfo
 import com.android.internal.protolog.ProtoLog
 import com.android.wm.shell.RootTaskDisplayAreaOrganizer

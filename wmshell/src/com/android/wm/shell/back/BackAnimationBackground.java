@@ -24,7 +24,7 @@ import android.annotation.Nullable;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.view.SurfaceControl;
-import android.window.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
 
 import com.android.internal.graphics.ColorUtils;
 import com.android.internal.view.AppearanceRegion;

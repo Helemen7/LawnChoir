@@ -18,7 +18,7 @@ package com.android.wm.shell.desktopmode
 
 import android.os.IBinder
 import android.view.SurfaceControl
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import android.window.TransitionInfo
 import com.android.internal.protolog.ProtoLog
 import com.android.wm.shell.desktopmode.multidesks.DesksTransitionObserver

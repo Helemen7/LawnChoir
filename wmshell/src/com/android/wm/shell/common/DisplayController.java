@@ -35,7 +35,7 @@ import android.view.Display;
 import android.view.IDisplayWindowListener;
 import android.view.IWindowManager;
 import android.view.InsetsState;
-import android.window.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
 import android.window.WindowContainerTransaction;
 
 import androidx.annotation.BinderThread;

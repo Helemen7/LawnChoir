@@ -20,8 +20,8 @@ import android.Manifest.permission.SYSTEM_ALERT_WINDOW
 import android.app.TaskInfo
 import android.content.Context
 import android.content.pm.PackageManager
-import android.window.DesktopExperienceFlags
-import android.window.DesktopModeFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopModeFlags
 import com.android.internal.R
 import com.android.internal.policy.DesktopModeCompatUtils
 import java.util.function.Supplier

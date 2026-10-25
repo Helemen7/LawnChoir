@@ -31,7 +31,7 @@ import android.view.Display.DEFAULT_DISPLAY
 import android.view.IWindowManager
 import android.view.InputDevice
 import android.view.WindowManager.TRANSIT_CHANGE
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import android.window.WindowContainerTransaction
 import com.android.internal.annotations.VisibleForTesting
 import com.android.internal.protolog.ProtoLog

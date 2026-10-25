@@ -114,7 +114,10 @@ internal constructor(
             // Get thumbnail from system
             var thumbnailData =
                 ActivityManagerWrapper.getInstance().getTaskThumbnail(task.key.id, lowResolution)
-            if (thumbnailData.thumbnail == null && !enableCoroutineThreadingImprovements()) {
+            // The task that is on screen has no snapshot yet, so ask the system to take one. This
+            // used to be skipped with coroutine threading improvements on, leaving the live tile
+            // without a thumbnail and the screenshot and lens actions disabled.
+            if (thumbnailData.thumbnail == null) {
                 thumbnailData = ActivityManagerWrapper.getInstance().takeTaskThumbnail(task.key.id)
             }
 

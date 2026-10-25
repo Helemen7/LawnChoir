@@ -22,8 +22,8 @@ import android.app.ActivityManager;
 import android.os.IBinder;
 import android.view.SurfaceControl;
 import android.view.WindowManager;
-import android.window.DesktopExperienceFlags;
-import android.window.DesktopModeFlags;
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags;
+import com.android.wm.shell.shared.compat.DesktopModeFlags;
 import android.window.TransitionInfo;
 import android.window.WindowContainerToken;
 

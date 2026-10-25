@@ -22,7 +22,7 @@ import android.os.RemoteException
 import android.util.Slog
 import android.view.ISystemGestureExclusionListener
 import android.view.IWindowManager
-import android.window.DesktopExperienceFlags
+import com.android.wm.shell.shared.compat.DesktopExperienceFlags
 import com.android.wm.shell.common.DisplayController
 import com.android.wm.shell.common.ShellExecutor
 import com.android.wm.shell.shared.annotations.ShellMainThread
