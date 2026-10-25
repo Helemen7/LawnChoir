@@ -332,9 +332,9 @@ public abstract class RemoteAnimationRunnerCompat extends IRemoteAnimationRunner
                                 info, false /* wallpapers */, t, leashMap);
 
                 final Runnable onAccepted = () -> {
-                    // Same layering as a regular return to home. The closing windows start hidden
-                    // since they only get their transform with the first frame of the runner's
-                    // animation, and would otherwise flash fullscreen for a frame.
+                    // Same layering as a regular return to home. The closing windows are not hidden
+                    // here: the runner has already placed them where the launch animation left
+                    // them, and hiding them would flash the whole home screen for a frame.
                     for (int i = info.getChanges().size() - 1; i >= 0; --i) {
                         final TransitionInfo.Change change = info.getChanges().get(i);
                         final SurfaceControl leash = leashMap.get(change.getLeash());
@@ -343,7 +343,6 @@ public abstract class RemoteAnimationRunnerCompat extends IRemoteAnimationRunner
                         final int mode = change.getMode();
                         if (mode == TRANSIT_CLOSE || mode == TRANSIT_TO_BACK) {
                             t.setLayer(leash, info.getChanges().size() * 3 - i);
-                            t.setAlpha(leash, 0f);
                         }
                     }
                     for (int i = wallpapers.length - 1; i >= 0; --i) {

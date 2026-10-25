@@ -2026,6 +2026,24 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
         return mOpeningWindowState.isMergeable() || isAppLaunchPending();
     }
 
+    /**
+     * Puts the closing window where the interrupted launch animation left it, so that there is no
+     * frame in which the app is missing or fullscreen before the closing animation's first frame.
+     */
+    private void applyClosingStartState(RemoteAnimationTarget[] appTargets, RectF startRect,
+            float startCornerRadius) {
+        try {
+            final Rect original = new Rect(0, 0, mDeviceProfile.getDeviceProperties().getWidthPx(),
+                    mDeviceProfile.getDeviceProperties().getHeightPx());
+            final Rect start = new Rect();
+            startRect.round(start);
+            new SpringAnimRunner(appTargets, startRect, start, original, startCornerRadius)
+                    .applyNow(startRect, 0f);
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Failed to place the closing window", e);
+        }
+    }
+
     /** Whether an icon was tapped and its launch animation hasn't begun yet. */
     private boolean isAppLaunchPending() {
         return SystemClock.uptimeMillis() < mLaunchPendingUntilMs;
@@ -2228,6 +2246,7 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
             mOpeningWindowState.end();
 
             result.beginReplace();
+            applyClosingStartState(appTargets, startRect, startCornerRadius);
             onAccepted.run();
             try {
                 startWallpaperOpenAnimation(appTargets, wallpaperTargets, nonAppTargets, result,
@@ -2637,6 +2656,19 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
         @Override
         public void onUpdate(RectF currentRectF, float progress) {
+            mSurfaceApplier.scheduleApply(buildTransaction(currentRectF, progress));
+        }
+
+        /**
+         * Applies the state for {@code currentRectF} at once, instead of with the next frame.
+         * Used to put a closing window where an interrupted launch left it, in the same frame
+         * the closing animation takes over.
+         */
+        void applyNow(RectF currentRectF, float progress) {
+            buildTransaction(currentRectF, progress).getTransaction().apply();
+        }
+
+        private SurfaceTransaction buildTransaction(RectF currentRectF, float progress) {
             SurfaceTransaction transaction = new SurfaceTransaction();
             for (int i = mAppTargets.length - 1; i >= 0; i--) {
                 RemoteAnimationTarget target = mAppTargets[i];
@@ -2686,7 +2718,7 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                             .setAlpha(1f);
                 }
             }
-            mSurfaceApplier.scheduleApply(transaction);
+            return transaction;
         }
 
         protected float getWindowAlpha(float progress) {
