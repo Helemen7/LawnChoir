@@ -4,6 +4,12 @@ LawnChoir is a **fork of [Lawnchair](https://github.com/LawnchairLauncher/lawnch
 
 It is not affiliated with the Lawnchair project. All credit for Lawnchair goes to its authors and contributors; this fork only carries the changes described below. Lawnchair's license (GPL-3.0, see `LICENSE.txt`) applies unchanged.
 
+## Disclaimer
+
+**Use this at your own risk.** This software installs a Magisk module that adds a privileged system app, replaces the system launcher and changes how the system draws and animates windows. It is provided as is, without any warranty of any kind, as stated in the GPL-3.0 license. The author and the contributors of this fork are not responsible for any damage, data loss, boot loop, bricked device, voided warranty, broken banking or Play Integrity checks, or any other consequence of installing, using or building it.
+
+Back up your data and your original `boot.img` before you install anything, and make sure you know how to flash it back with `fastboot`. If you do not know what any of this means, do not install it.
+
 ## What it does
 
 - **Interruptible app animations.** Opening an app from its icon can be interrupted by Home, Back or a swipe up, and the window closes from where it is instead of jumping to full screen. Closing an app and opening another icon in the middle of the close animation works as well, and the chain open, close, open can be repeated without a black screen.
